@@ -424,7 +424,7 @@ function Hero() {
             </a>
 
             {/* mobile-only decorative tags row */}
-            <div className="lg:hidden flex flex-wrap gap-2 mt-3 opacity-60">
+            <div className="lg:hidden flex flex-wrap gap-2 mt-10 opacity-60">
               {["데이터 표준화", "업무 자동화", "AI 결과 검증", "리스크 관리"].map((t) => (
                 <span
                   key={t}
