@@ -10,6 +10,37 @@ import { supabase } from "../lib/supabase";
 /* ─────────────────────────────────────────────────
    Shared data types
 ───────────────────────────────────────────────── */
+export interface ContentImage {
+  id: string;
+  url: string;
+  caption: string;
+  alt: string;
+}
+
+export type ContentBlock =
+  | {
+      id: string;
+      type: "heading";
+      level: 1 | 2 | 3;
+      text: string;
+    }
+  | {
+      id: string;
+      type: "text";
+      text: string;
+    }
+  | {
+      id: string;
+      type: "image";
+      image: ContentImage;
+    }
+  | {
+      id: string;
+      type: "image-row";
+      columns: 2 | 3;
+      images: ContentImage[];
+    };
+
 export interface Project {
   id: string;
   name: string;
@@ -27,6 +58,7 @@ export interface Project {
   videoUrl: string;
   figmaUrl: string;
   pdfUrl: string;
+  contentBlocks: ContentBlock[];
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
@@ -69,6 +101,7 @@ interface DbProjectRow {
   video_url: string | null;
   figma_url: string | null;
   pdf_url: string | null;
+  content_blocks: unknown;
   status: "draft" | "published";
   thumbnail_img: string | null;
   arch_img: string | null;
@@ -143,6 +176,21 @@ function dateOnly(value: string | null | undefined) {
   return value ? value.slice(0, 10) : "";
 }
 
+function asContentBlocks(value: unknown): ContentBlock[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((block): block is ContentBlock => {
+    if (!block || typeof block !== "object") return false;
+
+    const candidate = block as Record<string, unknown>;
+
+    return (
+      typeof candidate.id === "string" &&
+      typeof candidate.type === "string"
+    );
+  });
+}
+
 function fromDbProject(row: DbProjectRow): Project {
   return {
     id: row.id,
@@ -161,6 +209,7 @@ function fromDbProject(row: DbProjectRow): Project {
     videoUrl: row.video_url ?? "",
     figmaUrl: row.figma_url ?? "",
     pdfUrl: row.pdf_url ?? "",
+    contentBlocks: asContentBlocks(row.content_blocks),
     status: row.status,
     thumbnailImg: row.thumbnail_img ?? "",
     archImg: row.arch_img ?? "",
@@ -191,6 +240,7 @@ function toDbProject(project: Project) {
     video_url: project.videoUrl.trim() || null,
     figma_url: project.figmaUrl.trim() || null,
     pdf_url: project.pdfUrl.trim() || null,
+    content_blocks: project.contentBlocks,
     status: project.status,
     thumbnail_img: imageUrl(project.thumbnailImg),
     arch_img: imageUrl(project.archImg),

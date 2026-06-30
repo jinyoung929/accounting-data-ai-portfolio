@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useSite, type Project, type ProblemCard, type HeroContent } from "../context";
 import { supabase } from "../../lib/supabase";
+import ContentBlocksEditor from "../components/ContentBlocksEditor";
 import {
   uploadPortfolioImage,
   type PortfolioImageKind,
@@ -304,6 +305,7 @@ function ProjectModal({
     videoUrl: "",
     figmaUrl: "",
     pdfUrl: "",
+    contentBlocks: [],
     publishedAt: "",
     createdAt: today,
     updatedAt: today,
@@ -492,6 +494,13 @@ function ProjectModal({
               />
             </Field>
           ))}
+
+          <ContentBlocksEditor
+            blocks={form.contentBlocks}
+            onChange={(contentBlocks) =>
+              setForm((current) => ({ ...current, contentBlocks }))
+            }
+          />
 
           {/* 기술 스택 */}
           <Field label="기술 스택 (한 줄에 한 분류)">

@@ -12,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import { useSite } from "../context";
+import ProjectContentBlocks from "../components/ProjectContentBlocks";
 
 const surface = {
   background: "#FFFFFF",
@@ -279,8 +280,11 @@ export default function ProjectDetail() {
           <h2 className="text-lg font-bold mb-3" style={{ color: "#1F2A44" }}>
             문제 정의
           </h2>
-          <p className="text-sm leading-7" style={{ color: "#374151" }}>
-            {project.problem || "프로젝트 문제 정의를 정리 중입니다."}
+          <p
+            className="text-sm leading-7"
+            style={{ color: "#374151", whiteSpace: "pre-line" }}
+          >
+            {normalizeLineBreaks(project.problem) || "프로젝트 문제 정의를 정리 중입니다."}
           </p>
         </section>
 
@@ -288,10 +292,15 @@ export default function ProjectDetail() {
           <h2 className="text-lg font-bold mb-3" style={{ color: "#1F2A44" }}>
             해결 방식
           </h2>
-          <p className="text-sm leading-7" style={{ color: "#374151" }}>
-            {project.solution || "프로젝트 해결 방식을 정리 중입니다."}
+          <p
+            className="text-sm leading-7"
+            style={{ color: "#374151", whiteSpace: "pre-line" }}
+          >
+            {normalizeLineBreaks(project.solution) || "프로젝트 해결 방식을 정리 중입니다."}
           </p>
         </section>
+
+        <ProjectContentBlocks blocks={project.contentBlocks} />
 
         {stackGroups.length > 0 && (
           <section className="rounded-3xl p-7 md:p-10 mb-6" style={surface}>
