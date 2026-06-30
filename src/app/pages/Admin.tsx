@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
   Settings,
@@ -27,6 +27,7 @@ import {
   Link2,
 } from "lucide-react";
 import { useSite, type Project, type ProblemCard, type HeroContent } from "../context";
+import { supabase } from "../../lib/supabase";
 
 /* ─────────────────────────────────────────────────
    Shadow tokens
@@ -111,21 +112,39 @@ function SaveToast({ visible }: { visible: boolean }) {
    Login screen
 ───────────────────────────────────────────────── */
 function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [pw, setPw] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
-  const [err, setErr] = useState(false);
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 프로토타입용 패스코드 — 실제 배포 시 외부 인증(OAuth, Supabase Auth 등)으로 교체 예정
-  const PROTOTYPE_PASSCODE = "admin";
-
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (pw === PROTOTYPE_PASSCODE) {
-      onLogin();
-    } else {
-      setErr(true);
-      setPw("");
+    setErr("");
+    setLoading(true);
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (signInError) {
+      setErr(signInError.message);
+      setLoading(false);
+      return;
     }
+
+    const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin");
+
+    if (adminError || isAdmin !== true) {
+      await supabase.auth.signOut();
+      setErr("이 계정에는 관리자 권한이 없습니다.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(false);
+    onLogin();
   }
 
   return (
@@ -134,27 +153,6 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
       style={{ background: "#F7F8FC" }}
     >
       <div style={{ width: "min(400px, calc(100vw - 32px))" }}>
-        {/* 프로토타입 안내 배너 */}
-        <div
-          className="flex items-start gap-3 px-4 py-3 rounded-2xl mb-6"
-          style={{
-            background: "#FFFBEB",
-            border: "1px solid rgba(180,83,9,0.18)",
-          }}
-        >
-          <AlertCircle size={15} style={{ color: "#B45309", flexShrink: 0, marginTop: "1px" }} />
-          <div>
-            <p className="text-xs font-semibold mb-0.5" style={{ color: "#92400E" }}>
-              디자인 프로토타입 전용 화면
-            </p>
-            <p className="text-xs leading-relaxed" style={{ color: "#B45309" }}>
-              현재 로그인은 UI 검토 목적의 임시 구조입니다. 실제 서비스 배포 시에는
-              이 화면을 OAuth, Supabase Auth 등 외부 인증 시스템으로 교체할 예정입니다.
-            </p>
-          </div>
-        </div>
-
-        {/* 헤더 */}
         <div className="text-center mb-6">
           <div
             className="inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-3"
@@ -162,37 +160,68 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           >
             <Lock size={18} style={{ color: "#4A3FA3" }} />
           </div>
+
           <h1 className="text-base font-bold" style={{ color: "#1F2A44" }}>
-            관리자 진입
+            관리자 로그인
           </h1>
+
           <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>
             포트폴리오 콘텐츠 관리 화면입니다.
           </p>
         </div>
 
-        {/* 카드 */}
         <div style={{ ...neu, padding: "28px" }}>
           <form onSubmit={submit} className="flex flex-col gap-4">
-            <div className="relative">
+            <div>
+              <label style={labelStyle}>이메일</label>
               <input
-                type={show ? "text" : "password"}
-                value={pw}
-                onChange={(e) => { setPw(e.target.value); setErr(false); }}
-                placeholder="임시 패스코드"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErr("");
+                }}
+                placeholder="관리자 이메일"
+                autoComplete="email"
+                required
                 className="rounded-xl"
                 style={{
                   ...inputStyle,
                   border: err ? "1px solid #F87171" : "1px solid transparent",
                 }}
               />
-              <button
-                type="button"
-                onClick={() => setShow(!show)}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-                style={{ color: "#9CA3AF" }}
-              >
-                {show ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
+            </div>
+
+            <div>
+              <label style={labelStyle}>비밀번호</label>
+              <div className="relative">
+                <input
+                  type={show ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErr("");
+                  }}
+                  placeholder="비밀번호"
+                  autoComplete="current-password"
+                  required
+                  className="rounded-xl"
+                  style={{
+                    ...inputStyle,
+                    border: err ? "1px solid #F87171" : "1px solid transparent",
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShow(!show)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: "#9CA3AF" }}
+                  aria-label="비밀번호 표시 전환"
+                >
+                  {show ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+              </div>
             </div>
 
             {err && (
@@ -200,59 +229,35 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
                 style={{ background: "#FEF2F2", color: "#DC2626" }}
               >
-                <AlertCircle size={12} /> 패스코드가 올바르지 않습니다.
+                <AlertCircle size={12} />
+                {err}
               </div>
             )}
 
             <button
               type="submit"
+              disabled={loading}
               className="w-full py-3 rounded-xl text-sm font-semibold transition-all duration-150"
               style={{
-                background: "#1F2A44",
+                background: loading ? "#64748B" : "#1F2A44",
                 color: "#FFFFFF",
                 boxShadow: "0 4px 14px rgba(31,42,68,0.2)",
+                cursor: loading ? "wait" : "pointer",
               }}
-              onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLElement).style.background = "#2D3F62")
-              }
-              onMouseLeave={(e) =>
-                ((e.currentTarget as HTMLElement).style.background = "#1F2A44")
-              }
             >
-              진입하기
+              {loading ? "로그인 확인 중..." : "로그인"}
             </button>
           </form>
 
-          {/* 프로토타입 힌트 — 실제 배포 시 제거 */}
-          <div
-            className="mt-4 px-3 py-2 rounded-lg"
-            style={{ background: "#F7F8FC", border: "1px solid rgba(31,42,68,0.07)" }}
+          <p
+            className="text-xs text-center mt-4 leading-relaxed"
+            style={{ color: "#9CA3AF" }}
           >
-            <p className="text-xs text-center" style={{ color: "#9CA3AF" }}>
-              프로토타입 패스코드: <code style={{ color: "#6B7280", fontWeight: 600 }}>admin</code>
-              <span
-                className="block mt-0.5"
-                style={{ color: "#CBD5E1", fontSize: "10px" }}
-              >
-                실 배포 전 외부 인증으로 교체 예정
-              </span>
-            </p>
-          </div>
+            등록된 관리자 계정만 콘텐츠를 수정할 수 있습니다.
+          </p>
         </div>
 
-        {/* 진입 경로 안내 */}
-        <div
-          className="mt-4 px-4 py-3 rounded-xl text-xs text-center leading-relaxed"
-          style={{ color: "#9CA3AF" }}
-        >
-          공개 홈페이지 푸터의 브랜드명을 5회 클릭하면 이 화면으로 이동합니다.
-          <br />
-          <span style={{ color: "#CBD5E1" }}>
-            (접근 편의 기능 — 보안 기능이 아닙니다)
-          </span>
-        </div>
-
-        <div className="text-center mt-3">
+        <div className="text-center mt-5">
           <Link
             to="/"
             className="inline-flex items-center gap-1 text-xs"
@@ -296,11 +301,13 @@ function ProjectModal({
     createdAt: today,
     updatedAt: today,
     status: "draft",
+    thumbnailImg: "",
   };
 
   const [form, setForm] = useState<Omit<Project, "id">>(
     initial ? { ...initial } : blank
   );
+  const thumbRef = useRef<HTMLInputElement>(null);
   const archRef = useRef<HTMLInputElement>(null);
   const screenRef = useRef<HTMLInputElement>(null);
 
@@ -310,7 +317,7 @@ function ProjectModal({
 
   function handleFile(
     e: React.ChangeEvent<HTMLInputElement>,
-    key: "archImg" | "screenImg"
+    key: "thumbnailImg" | "archImg" | "screenImg"
   ) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -559,9 +566,10 @@ function ProjectModal({
           </div>
 
           {/* 이미지 업로드 */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {(
               [
+                { label: "대표 썸네일", key: "thumbnailImg" as const, ref: thumbRef },
                 { label: "아키텍처 이미지", key: "archImg" as const, ref: archRef },
                 { label: "화면 이미지", key: "screenImg" as const, ref: screenRef },
               ] as const
@@ -1488,10 +1496,64 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 ───────────────────────────────────────────────── */
 export default function Admin() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function restoreSession() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        if (active) {
+          setLoggedIn(false);
+          setChecking(false);
+        }
+        return;
+      }
+
+      const { data: isAdmin, error } = await supabase.rpc("is_admin");
+
+      if (!active) return;
+
+      if (error || isAdmin !== true) {
+        await supabase.auth.signOut();
+        setLoggedIn(false);
+      } else {
+        setLoggedIn(true);
+      }
+
+      setChecking(false);
+    }
+
+    void restoreSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function logout() {
+    await supabase.auth.signOut();
+    setLoggedIn(false);
+  }
+
+  if (checking) {
+    return (
+      <main
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "#F7F8FC", color: "#6B7280" }}
+      >
+        <p className="text-sm">관리자 인증 상태를 확인하고 있습니다.</p>
+      </main>
+    );
+  }
 
   if (!loggedIn) {
     return <LoginScreen onLogin={() => setLoggedIn(true)} />;
   }
 
-  return <AdminDashboard onLogout={() => setLoggedIn(false)} />;
+  return <AdminDashboard onLogout={() => void logout()} />;
 }

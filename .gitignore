@@ -2,3 +2,4 @@
 # Local dependencies and backup files
 node_modules/
 *.bak
+.env.local
