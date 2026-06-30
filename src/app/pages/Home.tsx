@@ -615,36 +615,6 @@ function Projects() {
                     </p>
                   </div>
 
-                  {/* 문제 정의 */}
-                  {p.problem && (
-                    <div className="rounded-xl p-3.5" style={{ background: "#FFF8F5" }}>
-                      <span
-                        className="block text-xs font-semibold uppercase tracking-wider mb-1.5"
-                        style={{ color: "#9CA3AF" }}
-                      >
-                        문제 정의
-                      </span>
-                      <p className="text-xs leading-relaxed" style={{ color: "#374151" }}>
-                        {p.problem}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* 해결 방식 */}
-                  {p.solution && (
-                    <div className="rounded-xl p-3.5" style={{ background: "#F8F7FF" }}>
-                      <span
-                        className="block text-xs font-semibold uppercase tracking-wider mb-1.5"
-                        style={{ color: "#9CA3AF" }}
-                      >
-                        해결 방식
-                      </span>
-                      <p className="text-xs leading-relaxed" style={{ color: "#374151" }}>
-                        {p.solution}
-                      </p>
-                    </div>
-                  )}
-
                   {/* 아키텍처 이미지 */}
                   {p.archImg && (
                     <img
@@ -765,11 +735,27 @@ function Projects() {
 
                   <Link
                     to={`/projects/${p.slug}`}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold mt-1"
-                    style={{ color: "#3F72FF", textDecoration: "none" }}
+                    className="group mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-150"
+                    style={{
+                      background: "#1F2A44",
+                      color: "#FFFFFF",
+                      textDecoration: "none",
+                      boxShadow: "0 5px 14px rgba(31,42,68,0.18)",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "#2D3F62";
+                      (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "#1F2A44";
+                      (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                    }}
                   >
                     프로젝트 자세히 보기
-                    <ChevronRight size={14} />
+                    <ChevronRight
+                      size={16}
+                      className="transition-transform group-hover:translate-x-0.5"
+                    />
                   </Link>
                 </div>
               );
