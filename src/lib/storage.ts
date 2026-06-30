@@ -3,7 +3,11 @@ import { supabase } from "./supabase";
 const BUCKET = "portfolio-images";
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
-export type PortfolioImageKind = "thumbnail" | "architecture" | "screen";
+export type PortfolioImageKind =
+  | "thumbnail"
+  | "architecture"
+  | "screen"
+  | "content";
 
 function getExtension(file: File) {
   const extension = file.name.split(".").pop()?.toLowerCase();
