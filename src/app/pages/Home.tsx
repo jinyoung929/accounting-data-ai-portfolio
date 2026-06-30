@@ -74,7 +74,6 @@ function Nav() {
 
   const links = [
     { label: "소개", href: "#hero" },
-    { label: "문제 해결 역량", href: "#problems" },
     { label: "프로젝트", href: "#projects" },
   ];
 
@@ -95,7 +94,7 @@ function Nav() {
           className="text-sm font-bold tracking-tight select-none"
           style={{ color: "#1F2A44" }}
         >
-          회계 · 데이터 · AI
+          {/* 브랜드명 숨김 */}
         </span>
 
         {/* desktop */}
@@ -364,7 +363,7 @@ function Hero() {
               >
                 {/* mobile: 간결 레이블 / desktop: 전체 레이블 */}
                 <span className="lg:hidden">문제 해결 포트폴리오</span>
-                <span className="hidden lg:inline">회계 · 데이터 · AI 포트폴리오</span>
+                <span className="hidden lg:inline">포트폴리오</span>
               </span>
             </div>
 
@@ -580,7 +579,7 @@ function Projects() {
             {published.map((p) => {
               const stacks = p.stack.split(",").map((s) => s.trim()).filter(Boolean);
               return (
-                <div key={p.id} style={neu} className="p-7 flex flex-col gap-4">
+                <div key={p.id} style={neu} className="p-7 flex flex-col gap-4 h-full">
                   {p.thumbnailImg && (
                     <img
                       src={p.thumbnailImg}
@@ -625,17 +624,18 @@ function Projects() {
                     />
                   )}
 
-                  {/* 기술 스택 태그 */}
-                  {stacks.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {stacks.slice(0, 4).map((s) => <Tag key={s} label={s} />)}
-                      {stacks.length > 4 && (
-                        <span className="text-xs" style={{ color: "#9CA3AF", alignSelf: "center" }}>
-                          +{stacks.length - 4}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {/* 기술 스택 태그 — 카드마다 같은 높이 유지 */}
+                  <div
+                    className="flex flex-wrap content-start gap-1.5"
+                    style={{ minHeight: "52px" }}
+                  >
+                    {stacks.slice(0, 4).map((s) => <Tag key={s} label={s} />)}
+                    {stacks.length > 4 && (
+                      <span className="text-xs" style={{ color: "#9CA3AF", alignSelf: "center" }}>
+                        +{stacks.length - 4}
+                      </span>
+                    )}
+                  </div>
 
                   {/* 관련 자료 — 링크가 하나라도 있을 때만 노출 */}
                   {(p.githubUrl || p.notionUrl || p.demoUrl) && (
@@ -735,7 +735,7 @@ function Projects() {
 
                   <Link
                     to={`/projects/${p.slug}`}
-                    className="group mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-150"
+                    className="group mt-auto flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-150"
                     style={{
                       background: "#1F2A44",
                       color: "#FFFFFF",
@@ -841,7 +841,6 @@ export default function Home() {
     <div style={{ fontFamily: "Inter, 'Noto Sans KR', sans-serif", background: "#F7F8FC" }}>
       <Nav />
       <Hero />
-      <Problems />
       <Projects />
       <Footer />
     </div>
