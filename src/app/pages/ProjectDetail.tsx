@@ -20,6 +20,37 @@ const surface = {
     "8px 8px 22px rgba(31,42,68,0.06), -6px -6px 18px rgba(255,255,255,0.95)",
 };
 
+function normalizeLineBreaks(value: string) {
+  return value.replace(/\\n/g, "\n");
+}
+
+function parseStackGroups(value: string) {
+  const lines = normalizeLineBreaks(value)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return lines
+    .map((line, index) => {
+      const separator = line.includes("|")
+        ? line.indexOf("|")
+        : line.indexOf(":");
+
+      const label =
+        separator >= 0 ? line.slice(0, separator).trim() : `기술 ${index + 1}`;
+
+      const itemsText = separator >= 0 ? line.slice(separator + 1) : line;
+
+      const items = itemsText
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      return { label, items };
+    })
+    .filter((group) => group.items.length > 0);
+}
+
 function Info({
   icon,
   label,
@@ -35,8 +66,11 @@ function Info({
         {icon}
         <span className="text-xs font-semibold">{label}</span>
       </div>
-      <p className="text-sm font-medium" style={{ color: "#1F2A44" }}>
-        {value || "-"}
+      <p
+        className="text-sm font-medium"
+        style={{ color: "#1F2A44", whiteSpace: "pre-line", lineHeight: 1.65 }}
+      >
+        {normalizeLineBreaks(value) || "-"}
       </p>
     </div>
   );
@@ -168,10 +202,7 @@ export default function ProjectDetail() {
     );
   }
 
-  const stacks = project.stack
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const stackGroups = parseStackGroups(project.stack);
 
   const videoEmbed = getVideoEmbed(project.videoUrl);
   const figmaEmbedUrl = getFigmaEmbedUrl(project.figmaUrl);
@@ -235,10 +266,12 @@ export default function ProjectDetail() {
             {project.summary}
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Info icon={<CalendarDays size={15} />} label="기간" value={project.period} />
             <Info icon={<Users size={15} />} label="팀 규모" value={project.teamSize} />
-            <Info icon={<UserRound size={15} />} label="담당 역할" value={project.role} />
+            <div className="sm:col-span-2">
+              <Info icon={<UserRound size={15} />} label="담당 역할" value={project.role} />
+            </div>
           </div>
         </section>
 
@@ -260,20 +293,38 @@ export default function ProjectDetail() {
           </p>
         </section>
 
-        {stacks.length > 0 && (
+        {stackGroups.length > 0 && (
           <section className="rounded-3xl p-7 md:p-10 mb-6" style={surface}>
-            <h2 className="text-lg font-bold mb-4" style={{ color: "#1F2A44" }}>
+            <h2 className="text-lg font-bold mb-5" style={{ color: "#1F2A44" }}>
               기술 스택
             </h2>
-            <div className="flex flex-wrap gap-2">
-              {stacks.map((stack) => (
-                <span
-                  key={stack}
-                  className="rounded-xl px-3 py-2 text-xs font-semibold"
-                  style={{ background: "#EEF2FF", color: "#394A9A" }}
+
+            <div className="flex flex-col gap-4">
+              {stackGroups.map((group) => (
+                <div
+                  key={group.label}
+                  className="rounded-2xl p-4"
+                  style={{ background: "#F7F8FC" }}
                 >
-                  {stack}
-                </span>
+                  <p
+                    className="text-xs font-bold mb-3"
+                    style={{ color: "#6B7280", letterSpacing: "0.02em" }}
+                  >
+                    {group.label}
+                  </p>
+
+                  <div className="flex flex-wrap gap-2">
+                    {group.items.map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-xl px-3 py-2 text-xs font-semibold"
+                        style={{ background: "#EEF2FF", color: "#394A9A" }}
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </section>

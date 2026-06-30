@@ -312,7 +312,13 @@ function ProjectModal({
   };
 
   const [form, setForm] = useState<Omit<Project, "id">>(
-    initial ? { ...initial } : blank
+    initial
+      ? {
+          ...initial,
+          role: initial.role.replace(/\\n/g, "\n"),
+          stack: initial.stack.replace(/\\n/g, "\n"),
+        }
+      : blank
   );
   type ImageField = "thumbnailImg" | "archImg" | "screenImg";
 
@@ -434,24 +440,39 @@ function ProjectModal({
             </Field>
           </div>
 
-          {/* 단일 필드들 */}
-          {(
-            [
-              { label: "프로젝트명", key: "name", placeholder: "예: 회계 데이터 표준화 엔진" },
-              { label: "한 줄 소개", key: "summary", placeholder: "프로젝트를 한 문장으로 소개해 주세요" },
-              { label: "나의 역할", key: "role", placeholder: "예: 데이터 설계 및 파이프라인 개발" },
-            ] as const
-          ).map((f) => (
-            <Field key={f.key} label={f.label}>
+          {/* 기본 정보 */}
+          <div className="flex flex-col gap-5">
+            <Field label="프로젝트명">
               <input
-                value={form[f.key]}
-                onChange={(e) => set(f.key, e.target.value)}
-                placeholder={f.placeholder}
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder="예: 회계 데이터 표준화 엔진"
                 style={inputStyle}
                 className="rounded-xl"
               />
             </Field>
-          ))}
+
+            <Field label="한 줄 소개">
+              <input
+                value={form.summary}
+                onChange={(e) => set("summary", e.target.value)}
+                placeholder="프로젝트를 한 문장으로 소개해 주세요"
+                style={inputStyle}
+                className="rounded-xl"
+              />
+            </Field>
+
+            <Field label="나의 역할 (Enter로 줄바꿈)">
+              <textarea
+                value={form.role}
+                onChange={(e) => set("role", e.target.value)}
+                placeholder={"예: 서비스 기획 및 개발\n- 사용자 문제 정의\n- API 연동 및 테스트"}
+                rows={4}
+                style={{ ...inputStyle, resize: "vertical", lineHeight: "1.65" }}
+                className="rounded-xl"
+              />
+            </Field>
+          </div>
 
           {/* 텍스트에어리어 */}
           {(
@@ -473,14 +494,18 @@ function ProjectModal({
           ))}
 
           {/* 기술 스택 */}
-          <Field label="기술 스택">
-            <input
+          <Field label="기술 스택 (한 줄에 한 분류)">
+            <textarea
               value={form.stack}
               onChange={(e) => set("stack", e.target.value)}
-              placeholder="예: Python, FastAPI, React, PostgreSQL"
-              style={inputStyle}
+              placeholder={"프론트엔드 | React Native, Expo\n백엔드 | Firebase Firestore, Firebase Auth, Cloud Functions\nAI·음성 | Gemini 2.5 Flash, OpenAI GPT, Twilio Voice API\n인프라·협업 | ngrok, GitHub, Figma, Notion"}
+              rows={5}
+              style={{ ...inputStyle, resize: "vertical", lineHeight: "1.65" }}
               className="rounded-xl"
             />
+            <p className="text-xs mt-2" style={{ color: "#9CA3AF" }}>
+              분류와 기술은 | 로 구분하고, 기술끼리는 쉼표로 구분해 주세요.
+            </p>
           </Field>
 
           {/* slug + 날짜 메타 섹션 */}
