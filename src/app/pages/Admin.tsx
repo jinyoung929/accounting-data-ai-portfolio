@@ -1110,7 +1110,13 @@ function ProblemsEditor({ onSaved }: { onSaved: () => void }) {
    Section: 프로젝트 관리
 ───────────────────────────────────────────────── */
 function ProjectsManager({ onSaved }: { onSaved: () => void }) {
-  const { projects, addProject, updateProject, deleteProject } = useSite();
+  const {
+    projects,
+    addProject,
+    updateProject,
+    deleteProject,
+    reorderProjects,
+  } = useSite();
   const [modal, setModal] = useState<"add" | Project | null>(null);
   const [toDelete, setToDelete] = useState<Project | null>(null);
   const [saving, setSaving] = useState(false);
@@ -1134,6 +1140,39 @@ function ProjectsManager({ onSaved }: { onSaved: () => void }) {
         err instanceof Error
           ? `저장하지 못했습니다: ${err.message}`
           : "저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleMove(index: number, direction: -1 | 1) {
+    const targetIndex = index + direction;
+
+    if (
+      saving ||
+      targetIndex < 0 ||
+      targetIndex >= projects.length
+    ) {
+      return;
+    }
+
+    const nextProjects = [...projects];
+    [nextProjects[index], nextProjects[targetIndex]] = [
+      nextProjects[targetIndex],
+      nextProjects[index],
+    ];
+
+    try {
+      setSaving(true);
+      setError("");
+      await reorderProjects(nextProjects);
+      onSaved();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `순서를 저장하지 못했습니다: ${err.message}`
+          : "순서를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
       );
     } finally {
       setSaving(false);
@@ -1222,7 +1261,7 @@ function ProjectsManager({ onSaved }: { onSaved: () => void }) {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {projects.map((p) => {
+          {projects.map((p, index) => {
             const stacks = p.stack.split(",").map((s) => s.trim()).filter(Boolean);
             return (
               <div
@@ -1230,9 +1269,39 @@ function ProjectsManager({ onSaved }: { onSaved: () => void }) {
                 style={neu}
                 className="flex items-start gap-4 p-5"
               >
-                {/* drag handle (visual only) */}
-                <div className="mt-1 flex-shrink-0" style={{ color: "#D1D5DB" }}>
-                  <GripVertical size={16} />
+                {/* 순서 변경 */}
+                <div className="mt-0.5 flex flex-col items-center gap-1 flex-shrink-0">
+                  <span
+                    className="text-[10px] font-bold"
+                    style={{ color: "#9CA3AF" }}
+                  >
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+
+                  <div className="flex flex-col gap-1">
+                    <button
+                      type="button"
+                      onClick={() => void handleMove(index, -1)}
+                      disabled={saving || index === 0}
+                      aria-label={`${p.name} 위로 이동`}
+                      title="위로 이동"
+                      className="w-6 h-6 rounded-md text-xs font-bold disabled:opacity-35"
+                      style={{ background: "#ECE9FF", color: "#4A3FA3" }}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleMove(index, 1)}
+                      disabled={saving || index === projects.length - 1}
+                      aria-label={`${p.name} 아래로 이동`}
+                      title="아래로 이동"
+                      className="w-6 h-6 rounded-md text-xs font-bold disabled:opacity-35"
+                      style={{ background: "#F1F5F9", color: "#64748B" }}
+                    >
+                      ↓
+                    </button>
+                  </div>
                 </div>
 
                 {/* content */}

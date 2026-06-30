@@ -63,6 +63,7 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   status: "draft" | "published";
+  sortOrder?: number;
   thumbnailImg?: string;
   archImg?: string;
   screenImg?: string;
@@ -103,6 +104,7 @@ interface DbProjectRow {
   pdf_url: string | null;
   content_blocks: unknown;
   status: "draft" | "published";
+  sort_order: number;
   thumbnail_img: string | null;
   arch_img: string | null;
   screen_img: string | null;
@@ -211,6 +213,7 @@ function fromDbProject(row: DbProjectRow): Project {
     pdfUrl: row.pdf_url ?? "",
     contentBlocks: asContentBlocks(row.content_blocks),
     status: row.status,
+    sortOrder: row.sort_order,
     thumbnailImg: row.thumbnail_img ?? "",
     archImg: row.arch_img ?? "",
     screenImg: row.screen_img ?? "",
@@ -268,6 +271,7 @@ interface SiteCtx {
   addProject: (project: Project) => Promise<void>;
   updateProject: (project: Project) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
+  reorderProjects: (nextProjects: Project[]) => Promise<void>;
 }
 
 const Ctx = createContext<SiteCtx | null>(null);
@@ -290,7 +294,8 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase
       .from("projects")
       .select("*")
-      .order("updated_at", { ascending: false });
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
 
     if (error) {
       console.error("프로젝트 목록을 불러오지 못했습니다:", error.message);
@@ -317,18 +322,29 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   };
 
   async function addProject(project: Project) {
+    const nextSortOrder =
+      projects.length > 0
+        ? Math.max(...projects.map((item) => item.sortOrder ?? 0)) + 1
+        : 1;
+
     const { data, error } = await supabase
       .from("projects")
-      .insert(toDbProject(project))
+      .insert({
+        ...toDbProject(project),
+        sort_order: nextSortOrder,
+      })
       .select()
       .single();
 
     if (error) throw new Error(error.message);
 
-    setProjectsState((prev) => [
-      fromDbProject(data as DbProjectRow),
-      ...prev,
-    ]);
+    const added = fromDbProject(data as DbProjectRow);
+
+    setProjectsState((prev) =>
+      [...prev, added].sort(
+        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+      ),
+    );
   }
 
   async function updateProject(project: Project) {
@@ -359,6 +375,31 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     setProjectsState((prev) => prev.filter((item) => item.id !== id));
   }
 
+  async function reorderProjects(nextProjects: Project[]) {
+    const ordered = nextProjects.map((project, index) => ({
+      ...project,
+      sortOrder: index + 1,
+    }));
+
+    setProjectsState(ordered);
+
+    const results = await Promise.all(
+      ordered.map((project) =>
+        supabase
+          .from("projects")
+          .update({ sort_order: project.sortOrder })
+          .eq("id", project.id),
+      ),
+    );
+
+    const failed = results.find((result) => result.error);
+
+    if (failed?.error) {
+      await refreshProjects();
+      throw new Error(failed.error.message);
+    }
+  }
+
   return (
     <Ctx.Provider
       value={{
@@ -372,6 +413,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         addProject,
         updateProject,
         deleteProject,
+        reorderProjects,
       }}
     >
       {children}
