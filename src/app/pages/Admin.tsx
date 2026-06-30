@@ -301,6 +301,9 @@ function ProjectModal({
     githubUrl: "",
     notionUrl: "",
     demoUrl: "",
+    videoUrl: "",
+    figmaUrl: "",
+    pdfUrl: "",
     publishedAt: "",
     createdAt: today,
     updatedAt: today,
@@ -586,6 +589,68 @@ function ProjectModal({
                   >
                     <f.icon size={13} style={{ color: f.color }} />
                   </div>
+                  <div className="flex-1">
+                    <label style={{ ...labelStyle, marginBottom: "4px" }}>{f.label}</label>
+                    <input
+                      value={form[f.key]}
+                      onChange={(e) => set(f.key, e.target.value)}
+                      placeholder={f.placeholder}
+                      style={inputStyle}
+                      className="rounded-xl"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 미디어 및 자료 링크 */}
+          <div>
+            <div
+              className="flex items-center gap-2 mb-3"
+              style={{ borderBottom: "1px solid rgba(31,42,68,0.07)", paddingBottom: "10px" }}
+            >
+              <MonitorPlay size={12} style={{ color: "#9CA3AF" }} />
+              <span style={{ ...labelStyle, marginBottom: 0 }}>미디어 및 자료 링크 (선택)</span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {(
+                [
+                  {
+                    label: "YouTube 또는 Loom 영상 URL",
+                    key: "videoUrl" as const,
+                    placeholder: "https://www.youtube.com/... 또는 https://www.loom.com/...",
+                    icon: MonitorPlay,
+                    color: "#DC2626",
+                    bg: "#FEF2F2",
+                  },
+                  {
+                    label: "Figma 프로토타입 URL",
+                    key: "figmaUrl" as const,
+                    placeholder: "https://www.figma.com/...",
+                    icon: Layers,
+                    color: "#4A3FA3",
+                    bg: "#ECE9FF",
+                  },
+                  {
+                    label: "PDF 발표자료 URL",
+                    key: "pdfUrl" as const,
+                    placeholder: "https://.../presentation.pdf",
+                    icon: FileText,
+                    color: "#B45309",
+                    bg: "#FEF3C7",
+                  },
+                ] as const
+              ).map((f) => (
+                <div key={f.key} className="flex items-center gap-3">
+                  <div
+                    className="w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0"
+                    style={{ background: f.bg }}
+                  >
+                    <f.icon size={13} style={{ color: f.color }} />
+                  </div>
+
                   <div className="flex-1">
                     <label style={{ ...labelStyle, marginBottom: "4px" }}>{f.label}</label>
                     <input
