@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router";
 import {
   Shield,
   Workflow,
@@ -580,6 +581,15 @@ function Projects() {
               const stacks = p.stack.split(",").map((s) => s.trim()).filter(Boolean);
               return (
                 <div key={p.id} style={neu} className="p-7 flex flex-col gap-4">
+                  {p.thumbnailImg && (
+                    <img
+                      src={p.thumbnailImg}
+                      alt={`${p.name} 대표 이미지`}
+                      className="w-full rounded-2xl object-cover"
+                      style={{ height: "180px" }}
+                    />
+                  )}
+
                   {/* 카드 헤더 */}
                   <div className="flex items-start justify-between">
                     <div
@@ -752,6 +762,15 @@ function Projects() {
                       )}
                     </div>
                   )}
+
+                  <Link
+                    to={`/projects/${p.slug}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold mt-1"
+                    style={{ color: "#3F72FF", textDecoration: "none" }}
+                  >
+                    프로젝트 자세히 보기
+                    <ChevronRight size={14} />
+                  </Link>
                 </div>
               );
             })}

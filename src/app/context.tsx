@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 
 /* ─────────────────────────────────────────────────
    Shared data types
@@ -21,6 +27,7 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   status: "draft" | "published";
+  thumbnailImg?: string;
   archImg?: string;
   screenImg?: string;
 }
@@ -34,6 +41,12 @@ export interface ProblemCard {
 export interface HeroContent {
   headline: string;
   sub: string;
+}
+
+interface SavedSite {
+  hero: HeroContent;
+  problems: ProblemCard[];
+  projects: Project[];
 }
 
 /* ─────────────────────────────────────────────────
@@ -68,48 +81,108 @@ const defaultProblems: ProblemCard[] = [
   },
 ];
 
+const STORAGE_KEY = "accounting-data-ai-portfolio-v1";
+
+function loadSavedSite(): SavedSite | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+
+    return {
+      hero:
+        parsed.hero &&
+        typeof parsed.hero.headline === "string" &&
+        typeof parsed.hero.sub === "string"
+          ? parsed.hero
+          : defaultHero,
+      problems: Array.isArray(parsed.problems)
+        ? parsed.problems
+        : defaultProblems,
+      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* ─────────────────────────────────────────────────
    Context shape
 ───────────────────────────────────────────────── */
 interface SiteCtx {
   hero: HeroContent;
-  setHero: (h: HeroContent) => void;
+  setHero: (hero: HeroContent) => void;
   problems: ProblemCard[];
-  setProblems: (p: ProblemCard[]) => void;
+  setProblems: (problems: ProblemCard[]) => void;
   projects: Project[];
-  setProjects: (p: Project[]) => void;
-  addProject: (p: Project) => void;
-  updateProject: (p: Project) => void;
+  setProjects: (projects: Project[]) => void;
+  addProject: (project: Project) => void;
+  updateProject: (project: Project) => void;
   deleteProject: (id: string) => void;
 }
 
 const Ctx = createContext<SiteCtx | null>(null);
 
 export function SiteProvider({ children }: { children: ReactNode }) {
-  const [hero, setHero] = useState<HeroContent>(defaultHero);
-  const [problems, setProblems] = useState<ProblemCard[]>(defaultProblems);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [site, setSite] = useState<SavedSite>(
+    () =>
+      loadSavedSite() ?? {
+        hero: defaultHero,
+        problems: defaultProblems,
+        projects: [],
+      },
+  );
 
-  function addProject(p: Project) {
-    setProjects((prev) => [p, ...prev]);
-  }
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(site));
+  }, [site]);
 
-  function updateProject(p: Project) {
-    setProjects((prev) => prev.map((x) => (x.id === p.id ? p : x)));
-  }
+  const setHero = (hero: HeroContent) => {
+    setSite((prev) => ({ ...prev, hero }));
+  };
 
-  function deleteProject(id: string) {
-    setProjects((prev) => prev.filter((x) => x.id !== id));
-  }
+  const setProblems = (problems: ProblemCard[]) => {
+    setSite((prev) => ({ ...prev, problems }));
+  };
+
+  const setProjects = (projects: Project[]) => {
+    setSite((prev) => ({ ...prev, projects }));
+  };
+
+  const addProject = (project: Project) => {
+    setSite((prev) => ({
+      ...prev,
+      projects: [project, ...prev.projects],
+    }));
+  };
+
+  const updateProject = (project: Project) => {
+    setSite((prev) => ({
+      ...prev,
+      projects: prev.projects.map((item) =>
+        item.id === project.id ? project : item,
+      ),
+    }));
+  };
+
+  const deleteProject = (id: string) => {
+    setSite((prev) => ({
+      ...prev,
+      projects: prev.projects.filter((item) => item.id !== id),
+    }));
+  };
 
   return (
     <Ctx.Provider
       value={{
-        hero,
+        hero: site.hero,
         setHero,
-        problems,
+        problems: site.problems,
         setProblems,
-        projects,
+        projects: site.projects,
         setProjects,
         addProject,
         updateProject,
