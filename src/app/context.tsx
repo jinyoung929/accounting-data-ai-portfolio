@@ -24,6 +24,9 @@ export interface Project {
   githubUrl: string;
   notionUrl: string;
   demoUrl: string;
+  videoUrl: string;
+  figmaUrl: string;
+  pdfUrl: string;
   publishedAt: string;
   createdAt: string;
   updatedAt: string;
@@ -63,6 +66,9 @@ interface DbProjectRow {
   github_url: string;
   notion_url: string;
   demo_url: string;
+  video_url: string | null;
+  figma_url: string | null;
+  pdf_url: string | null;
   status: "draft" | "published";
   thumbnail_img: string | null;
   arch_img: string | null;
@@ -152,6 +158,9 @@ function fromDbProject(row: DbProjectRow): Project {
     githubUrl: row.github_url,
     notionUrl: row.notion_url,
     demoUrl: row.demo_url,
+    videoUrl: row.video_url ?? "",
+    figmaUrl: row.figma_url ?? "",
+    pdfUrl: row.pdf_url ?? "",
     status: row.status,
     thumbnailImg: row.thumbnail_img ?? "",
     archImg: row.arch_img ?? "",
@@ -179,6 +188,9 @@ function toDbProject(project: Project) {
     github_url: project.githubUrl.trim(),
     notion_url: project.notionUrl.trim(),
     demo_url: project.demoUrl.trim(),
+    video_url: project.videoUrl.trim() || null,
+    figma_url: project.figmaUrl.trim() || null,
+    pdf_url: project.pdfUrl.trim() || null,
     status: project.status,
     thumbnail_img: imageUrl(project.thumbnailImg),
     arch_img: imageUrl(project.archImg),
