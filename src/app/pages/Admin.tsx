@@ -958,22 +958,51 @@ function ProjectsManager({ onSaved }: { onSaved: () => void }) {
   const { projects, addProject, updateProject, deleteProject } = useSite();
   const [modal, setModal] = useState<"add" | Project | null>(null);
   const [toDelete, setToDelete] = useState<Project | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSave(p: Project) {
-    if (modal === "add") {
-      addProject(p);
-    } else if (modal && typeof modal === "object") {
-      updateProject(p);
+  async function handleSave(p: Project) {
+    try {
+      setSaving(true);
+      setError("");
+
+      if (modal === "add") {
+        await addProject(p);
+      } else if (modal && typeof modal === "object") {
+        await updateProject(p);
+      }
+
+      setModal(null);
+      onSaved();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `저장하지 못했습니다: ${err.message}`
+          : "저장하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
+      setSaving(false);
     }
-    setModal(null);
-    onSaved();
   }
 
-  function confirmDelete() {
-    if (toDelete) {
-      deleteProject(toDelete.id);
+  async function confirmDelete() {
+    if (!toDelete) return;
+
+    try {
+      setSaving(true);
+      setError("");
+
+      await deleteProject(toDelete.id);
       setToDelete(null);
       onSaved();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `삭제하지 못했습니다: ${err.message}`
+          : "삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+      );
+    } finally {
+      setSaving(false);
     }
   }
 

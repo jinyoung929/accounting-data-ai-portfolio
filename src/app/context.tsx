@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { supabase } from "../lib/supabase";
 
 /* ─────────────────────────────────────────────────
    Shared data types
@@ -46,7 +47,29 @@ export interface HeroContent {
 interface SavedSite {
   hero: HeroContent;
   problems: ProblemCard[];
-  projects: Project[];
+}
+
+interface DbProjectRow {
+  id: string;
+  name: string;
+  summary: string;
+  period: string;
+  team_size: string;
+  role: string;
+  problem: string;
+  solution: string;
+  stack: string;
+  slug: string;
+  github_url: string;
+  notion_url: string;
+  demo_url: string;
+  status: "draft" | "published";
+  thumbnail_img: string | null;
+  arch_img: string | null;
+  screen_img: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /* ─────────────────────────────────────────────────
@@ -83,12 +106,14 @@ const defaultProblems: ProblemCard[] = [
 
 const STORAGE_KEY = "accounting-data-ai-portfolio-v1";
 
-function loadSavedSite(): SavedSite | null {
-  if (typeof window === "undefined") return null;
+function loadSavedSite(): SavedSite {
+  if (typeof window === "undefined") {
+    return { hero: defaultHero, problems: defaultProblems };
+  }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) return { hero: defaultHero, problems: defaultProblems };
 
     const parsed = JSON.parse(raw);
 
@@ -102,11 +127,69 @@ function loadSavedSite(): SavedSite | null {
       problems: Array.isArray(parsed.problems)
         ? parsed.problems
         : defaultProblems,
-      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
     };
   } catch {
-    return null;
+    return { hero: defaultHero, problems: defaultProblems };
   }
+}
+
+function dateOnly(value: string | null | undefined) {
+  return value ? value.slice(0, 10) : "";
+}
+
+function fromDbProject(row: DbProjectRow): Project {
+  return {
+    id: row.id,
+    name: row.name,
+    summary: row.summary,
+    period: row.period,
+    teamSize: row.team_size,
+    role: row.role,
+    problem: row.problem,
+    solution: row.solution,
+    stack: row.stack,
+    slug: row.slug,
+    githubUrl: row.github_url,
+    notionUrl: row.notion_url,
+    demoUrl: row.demo_url,
+    status: row.status,
+    thumbnailImg: row.thumbnail_img ?? "",
+    archImg: row.arch_img ?? "",
+    screenImg: row.screen_img ?? "",
+    publishedAt: dateOnly(row.published_at),
+    createdAt: dateOnly(row.created_at),
+    updatedAt: dateOnly(row.updated_at),
+  };
+}
+
+function toDbProject(project: Project) {
+  const imageUrl = (value?: string) =>
+    value && !value.startsWith("blob:") ? value : null;
+
+  return {
+    name: project.name.trim(),
+    summary: project.summary.trim(),
+    period: project.period.trim(),
+    team_size: project.teamSize.trim(),
+    role: project.role.trim(),
+    problem: project.problem.trim(),
+    solution: project.solution.trim(),
+    stack: project.stack.trim(),
+    slug: project.slug.trim(),
+    github_url: project.githubUrl.trim(),
+    notion_url: project.notionUrl.trim(),
+    demo_url: project.demoUrl.trim(),
+    status: project.status,
+    thumbnail_img: imageUrl(project.thumbnailImg),
+    arch_img: imageUrl(project.archImg),
+    screen_img: imageUrl(project.screenImg),
+    published_at:
+      project.status === "published"
+        ? project.publishedAt
+          ? `${project.publishedAt}T00:00:00.000Z`
+          : new Date().toISOString()
+        : null,
+  };
 }
 
 /* ─────────────────────────────────────────────────
@@ -119,71 +202,111 @@ interface SiteCtx {
   setProblems: (problems: ProblemCard[]) => void;
   projects: Project[];
   setProjects: (projects: Project[]) => void;
-  addProject: (project: Project) => void;
-  updateProject: (project: Project) => void;
-  deleteProject: (id: string) => void;
+  refreshProjects: () => Promise<void>;
+  addProject: (project: Project) => Promise<void>;
+  updateProject: (project: Project) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
 }
 
 const Ctx = createContext<SiteCtx | null>(null);
 
 export function SiteProvider({ children }: { children: ReactNode }) {
-  const [site, setSite] = useState<SavedSite>(
-    () =>
-      loadSavedSite() ?? {
-        hero: defaultHero,
-        problems: defaultProblems,
-        projects: [],
-      },
-  );
+  const saved = loadSavedSite();
+
+  const [hero, setHeroState] = useState<HeroContent>(saved.hero);
+  const [problems, setProblemsState] = useState<ProblemCard[]>(saved.problems);
+  const [projects, setProjectsState] = useState<Project[]>([]);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(site));
-  }, [site]);
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ hero, problems }),
+    );
+  }, [hero, problems]);
 
-  const setHero = (hero: HeroContent) => {
-    setSite((prev) => ({ ...prev, hero }));
+  async function refreshProjects() {
+    const { data, error } = await supabase
+      .from("projects")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    if (error) {
+      console.error("프로젝트 목록을 불러오지 못했습니다:", error.message);
+      return;
+    }
+
+    setProjectsState((data as DbProjectRow[]).map(fromDbProject));
+  }
+
+  useEffect(() => {
+    void refreshProjects();
+  }, []);
+
+  const setHero = (nextHero: HeroContent) => {
+    setHeroState(nextHero);
   };
 
-  const setProblems = (problems: ProblemCard[]) => {
-    setSite((prev) => ({ ...prev, problems }));
+  const setProblems = (nextProblems: ProblemCard[]) => {
+    setProblemsState(nextProblems);
   };
 
-  const setProjects = (projects: Project[]) => {
-    setSite((prev) => ({ ...prev, projects }));
+  const setProjects = (nextProjects: Project[]) => {
+    setProjectsState(nextProjects);
   };
 
-  const addProject = (project: Project) => {
-    setSite((prev) => ({
+  async function addProject(project: Project) {
+    const { data, error } = await supabase
+      .from("projects")
+      .insert(toDbProject(project))
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    setProjectsState((prev) => [
+      fromDbProject(data as DbProjectRow),
       ...prev,
-      projects: [project, ...prev.projects],
-    }));
-  };
+    ]);
+  }
 
-  const updateProject = (project: Project) => {
-    setSite((prev) => ({
-      ...prev,
-      projects: prev.projects.map((item) =>
-        item.id === project.id ? project : item,
-      ),
-    }));
-  };
+  async function updateProject(project: Project) {
+    const { data, error } = await supabase
+      .from("projects")
+      .update(toDbProject(project))
+      .eq("id", project.id)
+      .select()
+      .single();
 
-  const deleteProject = (id: string) => {
-    setSite((prev) => ({
-      ...prev,
-      projects: prev.projects.filter((item) => item.id !== id),
-    }));
-  };
+    if (error) throw new Error(error.message);
+
+    const updated = fromDbProject(data as DbProjectRow);
+
+    setProjectsState((prev) =>
+      prev.map((item) => (item.id === updated.id ? updated : item)),
+    );
+  }
+
+  async function deleteProject(id: string) {
+    const { error } = await supabase
+      .from("projects")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw new Error(error.message);
+
+    setProjectsState((prev) => prev.filter((item) => item.id !== id));
+  }
 
   return (
     <Ctx.Provider
       value={{
-        hero: site.hero,
+        hero,
         setHero,
-        problems: site.problems,
+        problems,
         setProblems,
-        projects: site.projects,
+        projects,
         setProjects,
+        refreshProjects,
         addProject,
         updateProject,
         deleteProject,
@@ -196,6 +319,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
 export function useSite() {
   const ctx = useContext(Ctx);
-  if (!ctx) throw new Error("useSite must be inside SiteProvider");
+
+  if (!ctx) {
+    throw new Error("useSite must be inside SiteProvider");
+  }
+
   return ctx;
 }
