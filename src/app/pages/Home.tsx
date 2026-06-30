@@ -185,63 +185,116 @@ function Nav() {
 /* ─────────────────────────────────────────────────
    Hero capability card (right side)
 ───────────────────────────────────────────────── */
-function CapabilityCard() {
-  const { problems } = useSite();
-  const iconMap = [Database, Workflow, ScanSearch, Shield];
-  const bgMap = ["#ECE9FF", "#DFF7EA", "#FFE8DD", "#E0F2FE"];
-  const icMap = ["#4A3FA3", "#059669", "#C2410C", "#0284C7"];
+function ProjectArchivePreview() {
+  const { projects } = useSite();
+
+  const previewProjects = projects
+    .filter((project) => project.status === "published");
 
   return (
-    <div style={{ ...neu, padding: "28px" }}>
-      <div className="flex items-center gap-2 mb-6">
-        <span className="w-2 h-2 rounded-full" style={{ background: "#3F72FF" }} />
+    <div
+      className="rounded-[28px] p-6"
+      style={{
+        background: "#FFFFFF",
+        border: "1px solid rgba(31,42,68,0.06)",
+        boxShadow: "14px 14px 34px rgba(31,42,68,0.08), -8px -8px 24px rgba(255,255,255,0.92)",
+      }}
+    >
+      <div className="flex items-center gap-2">
         <span
-          className="text-xs font-semibold uppercase tracking-widest"
-          style={{ color: "#9CA3AF" }}
-        >
-          핵심 관심 역량
+          className="w-2.5 h-2.5 rounded-full"
+          style={{ background: "#3F72FF" }}
+        />
+        <span className="text-sm font-semibold" style={{ color: "#94A3B8" }}>
+          프로젝트 목록
         </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {problems.map((p, i) => {
-          const Icon = iconMap[i % iconMap.length];
-          return (
-            <div
-              key={p.id}
-              className="flex flex-col gap-2.5 p-4 rounded-xl"
-              style={{ background: "#F7F8FC" }}
-            >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: bgMap[i % bgMap.length] }}
-              >
-                <Icon size={15} style={{ color: icMap[i % icMap.length] }} />
-              </div>
-              <span
-                className="text-xs font-semibold leading-snug"
-                style={{ color: "#1F2A44" }}
-              >
-                {p.title}
-              </span>
-            </div>
-          );
-        })}
       </div>
 
       <div
-        className="flex items-center gap-2 mt-5 pt-4"
-        style={{ borderTop: "1px solid rgba(31,42,68,0.07)" }}
+        className="mt-5 space-y-2.5 pr-1"
+        style={{
+          maxHeight: "278px",
+          overflowY: "auto",
+          scrollbarWidth: "thin",
+          scrollbarColor: "rgba(63,114,255,0.45) transparent",
+        }}
       >
-        <GitMerge size={13} style={{ color: "#CBD5E1" }} />
-        <span className="text-xs" style={{ color: "#9CA3AF" }}>
-          회계 도메인 이해 → 데이터 · AI 접근
-        </span>
+        {previewProjects.length > 0 ? (
+          previewProjects.map((project, index) => (
+            <Link
+              key={project.id}
+              to={`/projects/${project.slug}`}
+              className="group flex items-center gap-3 rounded-2xl p-3 transition-all duration-150"
+              style={{
+                background: "#F7F8FC",
+                border: "1px solid rgba(31,42,68,0.05)",
+                textDecoration: "none",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "#EEF2FF";
+                (e.currentTarget as HTMLElement).style.borderColor = "rgba(63,114,255,0.18)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "#F7F8FC";
+                (e.currentTarget as HTMLElement).style.borderColor = "rgba(31,42,68,0.05)";
+              }}
+            >
+              <span
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0"
+                style={{ background: "#ECE9FF", color: "#4A3FA3" }}
+              >
+                {String(index + 1).padStart(2, "0")}
+              </span>
+
+              <span className="min-w-0 flex-1">
+                <span
+                  className="block truncate text-sm font-semibold"
+                  style={{ color: "#1F2A44" }}
+                  title={project.name}
+                >
+                  {project.name}
+                </span>
+                <span
+                  className="block mt-0.5 text-xs"
+                  style={{
+                    color: "#6B7280",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {project.summary}
+                </span>
+              </span>
+
+              <ChevronRight
+                size={16}
+                className="flex-shrink-0 transition-transform group-hover:translate-x-0.5"
+                style={{ color: "#9CA3AF" }}
+              />
+            </Link>
+          ))
+        ) : (
+          <div
+            className="rounded-2xl p-4 text-xs"
+            style={{ background: "#F7F8FC", color: "#9CA3AF" }}
+          >
+            공개 프로젝트를 불러오는 중입니다.
+          </div>
+        )}
       </div>
+
+      <a
+        href="#projects"
+        className="mt-5 flex items-center justify-between rounded-xl px-1 text-sm font-semibold"
+        style={{ color: "#3F72FF", textDecoration: "none" }}
+      >
+        전체 프로젝트 보기
+        <ChevronRight size={16} />
+      </a>
     </div>
   );
 }
-
 /* ─────────────────────────────────────────────────
    Hero background decoration — subtle grid + arch lines
 ───────────────────────────────────────────────── */
@@ -345,8 +398,8 @@ function Hero() {
       {/* decorative background */}
       <HeroBg />
 
-      <div className="relative max-w-5xl mx-auto px-6 w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-12 lg:gap-16 items-center">
+      <div className="relative max-w-6xl mx-auto px-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_500px] gap-10 lg:gap-12 items-center">
           <div>
             {/* badge — compact text on mobile */}
             <div
@@ -443,7 +496,7 @@ function Hero() {
 
           {/* right — desktop only */}
           <div className="hidden lg:block">
-            <CapabilityCard />
+            <ProjectArchivePreview />
           </div>
         </div>
       </div>
