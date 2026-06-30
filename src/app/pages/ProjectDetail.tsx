@@ -375,27 +375,42 @@ export default function ProjectDetail() {
 
         {hasRelatedResources && (
           <section className="rounded-3xl p-7 md:p-10" style={surface}>
-            <h2 className="text-lg font-bold mb-4" style={{ color: "#1F2A44" }}>
+            <h2 className="text-lg font-bold mb-5" style={{ color: "#1F2A44" }}>
               관련 자료
             </h2>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {githubUrl && (
                 <a
                   href={githubUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  className="group flex items-center gap-4 rounded-2xl p-4 transition-all duration-150 hover:-translate-y-0.5"
                   style={{
-                    background: "#FFFFFF",
-                    color: "#1F2A44",
-                    border: "1px solid rgba(31,42,68,0.12)",
+                    background: "#F7F8FC",
+                    border: "1px solid rgba(31,42,68,0.10)",
                     textDecoration: "none",
                   }}
                 >
-                  <Github size={16} />
-                  GitHub 코드 보기
-                  <ArrowUpRight size={14} />
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#1F2A44", color: "#FFFFFF" }}
+                  >
+                    <Github size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: "#1F2A44" }}>
+                      GitHub
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "#6B7280" }}>
+                      코드와 커밋 기록 보기
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={17}
+                    style={{ color: "#6B7280" }}
+                    className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                  />
                 </a>
               )}
 
@@ -404,17 +419,36 @@ export default function ProjectDetail() {
                   href={notionUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  className="group flex items-center gap-4 rounded-2xl p-4 transition-all duration-150 hover:-translate-y-0.5"
                   style={{
                     background: "#FFFFFF",
-                    color: "#1F2A44",
-                    border: "1px solid rgba(31,42,68,0.12)",
+                    border: "1px solid rgba(31,42,68,0.14)",
                     textDecoration: "none",
                   }}
                 >
-                  <FileText size={16} />
-                  Notion 문서 보기
-                  <ArrowUpRight size={14} />
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: "#FFFFFF",
+                      color: "#1F2A44",
+                      border: "2px solid #1F2A44",
+                    }}
+                  >
+                    <span className="text-lg font-black">N</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: "#1F2A44" }}>
+                      Notion
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "#6B7280" }}>
+                      기획·설계 문서 보기
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={17}
+                    style={{ color: "#6B7280" }}
+                    className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                  />
                 </a>
               )}
 
@@ -423,16 +457,32 @@ export default function ProjectDetail() {
                   href={demoUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  className="group flex items-center gap-4 rounded-2xl p-4 transition-all duration-150 hover:-translate-y-0.5"
                   style={{
-                    background: "#3F72FF",
-                    color: "#FFFFFF",
+                    background: "#EEF4FF",
+                    border: "1px solid rgba(63,114,255,0.16)",
                     textDecoration: "none",
                   }}
                 >
-                  <Play size={16} />
-                  서비스 데모 보기
-                  <ArrowUpRight size={14} />
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#3F72FF", color: "#FFFFFF" }}
+                  >
+                    <Play size={19} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: "#1F2A44" }}>
+                      서비스 데모
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "#6B7280" }}>
+                      실행 화면 직접 보기
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={17}
+                    style={{ color: "#3F72FF" }}
+                    className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                  />
                 </a>
               )}
 
@@ -441,16 +491,32 @@ export default function ProjectDetail() {
                   href={pdfUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  className="group flex items-center gap-4 rounded-2xl p-4 transition-all duration-150 hover:-translate-y-0.5"
                   style={{
-                    background: "#FEF3C7",
-                    color: "#92400E",
+                    background: "#FFFBEB",
+                    border: "1px solid rgba(180,83,9,0.16)",
                     textDecoration: "none",
                   }}
                 >
-                  <FileText size={16} />
-                  PDF 발표자료 보기
-                  <ArrowUpRight size={14} />
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#FEF3C7", color: "#B45309" }}
+                  >
+                    <FileText size={19} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: "#1F2A44" }}>
+                      PDF 발표자료
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "#6B7280" }}>
+                      발표자료 새 탭에서 보기
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={17}
+                    style={{ color: "#B45309" }}
+                    className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                  />
                 </a>
               )}
 
@@ -459,16 +525,32 @@ export default function ProjectDetail() {
                   href={videoUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  className="group flex items-center gap-4 rounded-2xl p-4 transition-all duration-150 hover:-translate-y-0.5"
                   style={{
                     background: "#FEF2F2",
-                    color: "#B91C1C",
+                    border: "1px solid rgba(220,38,38,0.14)",
                     textDecoration: "none",
                   }}
                 >
-                  <Play size={16} />
-                  영상 보기
-                  <ArrowUpRight size={14} />
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#FEE2E2", color: "#DC2626" }}
+                  >
+                    <Play size={19} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: "#1F2A44" }}>
+                      프로젝트 영상
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "#6B7280" }}>
+                      시연 영상 새 탭에서 보기
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={17}
+                    style={{ color: "#DC2626" }}
+                    className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                  />
                 </a>
               )}
 
@@ -477,21 +559,38 @@ export default function ProjectDetail() {
                   href={figmaUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  className="group flex items-center gap-4 rounded-2xl p-4 transition-all duration-150 hover:-translate-y-0.5"
                   style={{
-                    background: "#ECE9FF",
-                    color: "#4A3FA3",
+                    background: "#F5F3FF",
+                    border: "1px solid rgba(74,63,163,0.14)",
                     textDecoration: "none",
                   }}
                 >
-                  <Layers3 size={16} />
-                  Figma 자료 보기
-                  <ArrowUpRight size={14} />
+                  <div
+                    className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: "#ECE9FF", color: "#4A3FA3" }}
+                  >
+                    <Layers3 size={19} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold" style={{ color: "#1F2A44" }}>
+                      Figma
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "#6B7280" }}>
+                      프로토타입 새 탭에서 보기
+                    </p>
+                  </div>
+                  <ArrowUpRight
+                    size={17}
+                    style={{ color: "#4A3FA3" }}
+                    className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform"
+                  />
                 </a>
               )}
             </div>
           </section>
         )}
+
       </div>
     </main>
   );
