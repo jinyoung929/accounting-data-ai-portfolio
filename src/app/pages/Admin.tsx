@@ -28,6 +28,10 @@ import {
 } from "lucide-react";
 import { useSite, type Project, type ProblemCard, type HeroContent } from "../context";
 import { supabase } from "../../lib/supabase";
+import {
+  uploadPortfolioImage,
+  type PortfolioImageKind,
+} from "../../lib/storage";
 
 /* ─────────────────────────────────────────────────
    Shadow tokens
@@ -307,25 +311,57 @@ function ProjectModal({
   const [form, setForm] = useState<Omit<Project, "id">>(
     initial ? { ...initial } : blank
   );
+  type ImageField = "thumbnailImg" | "archImg" | "screenImg";
+
   const thumbRef = useRef<HTMLInputElement>(null);
   const archRef = useRef<HTMLInputElement>(null);
   const screenRef = useRef<HTMLInputElement>(null);
+  const [uploadingKey, setUploadingKey] = useState<ImageField | null>(null);
+  const [uploadError, setUploadError] = useState("");
+
+  const imageKinds: Record<ImageField, PortfolioImageKind> = {
+    thumbnailImg: "thumbnail",
+    archImg: "architecture",
+    screenImg: "screen",
+  };
 
   function set(key: keyof typeof form, val: string) {
     setForm((f) => ({ ...f, [key]: val }));
   }
 
-  function handleFile(
+  async function handleFile(
     e: React.ChangeEvent<HTMLInputElement>,
-    key: "thumbnailImg" | "archImg" | "screenImg"
+    key: ImageField,
   ) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setForm((f) => ({ ...f, [key]: URL.createObjectURL(file) }));
+
+    const previousUrl = form[key];
+    const previewUrl = URL.createObjectURL(file);
+
+    setUploadError("");
+    setUploadingKey(key);
+    setForm((f) => ({ ...f, [key]: previewUrl }));
+
+    try {
+      const publicUrl = await uploadPortfolioImage(file, imageKinds[key]);
+      setForm((f) => ({ ...f, [key]: publicUrl }));
+    } catch (err) {
+      setForm((f) => ({ ...f, [key]: previousUrl }));
+      setUploadError(
+        err instanceof Error
+          ? `이미지를 업로드하지 못했습니다: ${err.message}`
+          : "이미지를 업로드하지 못했습니다. 다시 시도해 주세요.",
+      );
+    } finally {
+      URL.revokeObjectURL(previewUrl);
+      setUploadingKey(null);
+      e.target.value = "";
+    }
   }
 
   function handleSave() {
-    if (!form.name.trim()) return;
+    if (!form.name.trim() || uploadingKey) return;
     const now = new Date().toISOString().slice(0, 10);
     onSave({
       ...form,
@@ -580,8 +616,12 @@ function ProjectModal({
                   style={{
                     ...neuInset,
                     border: "2px dashed rgba(63,114,255,0.2)",
+                    cursor: uploadingKey ? "wait" : "pointer",
+                    opacity: uploadingKey && uploadingKey !== item.key ? 0.55 : 1,
                   }}
-                  onClick={() => item.ref.current?.click()}
+                  onClick={() => {
+                    if (!uploadingKey) item.ref.current?.click();
+                  }}
                   onMouseEnter={(e) =>
                     ((e.currentTarget as HTMLElement).style.borderColor =
                       "rgba(63,114,255,0.4)")
@@ -591,7 +631,14 @@ function ProjectModal({
                       "rgba(63,114,255,0.2)")
                   }
                 >
-                  {form[item.key] ? (
+                  {uploadingKey === item.key ? (
+                    <>
+                      <Upload size={15} className="animate-pulse" style={{ color: "#4A3FA3" }} />
+                      <span className="text-xs" style={{ color: "#4A3FA3" }}>
+                        업로드 중...
+                      </span>
+                    </>
+                  ) : form[item.key] ? (
                     <img
                       src={form[item.key]}
                       alt=""
@@ -616,6 +663,12 @@ function ProjectModal({
               </Field>
             ))}
           </div>
+
+          {uploadError && (
+            <p className="text-xs -mt-2" style={{ color: "#DC2626" }}>
+              {uploadError}
+            </p>
+          )}
 
           {/* 공개 상태 */}
           <Field label="공개 상태">
@@ -667,11 +720,14 @@ function ProjectModal({
           </button>
           <button
             onClick={handleSave}
+            disabled={uploadingKey !== null}
             className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150"
             style={{
               background: "#1F2A44",
               color: "#FFFFFF",
               boxShadow: "0 4px 14px rgba(31,42,68,0.2)",
+              opacity: uploadingKey ? 0.55 : 1,
+              cursor: uploadingKey ? "not-allowed" : "pointer",
             }}
             onMouseEnter={(e) =>
               ((e.currentTarget as HTMLElement).style.background = "#2D3F62")
@@ -680,7 +736,7 @@ function ProjectModal({
               ((e.currentTarget as HTMLElement).style.background = "#1F2A44")
             }
           >
-            <Save size={13} /> 저장하기
+            <Save size={13} /> {uploadingKey ? "이미지 업로드 중..." : "저장하기"}
           </button>
         </div>
       </div>
