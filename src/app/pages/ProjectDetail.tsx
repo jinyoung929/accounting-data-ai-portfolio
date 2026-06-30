@@ -42,6 +42,97 @@ function Info({
   );
 }
 
+function parseHttpUrl(value?: string) {
+  if (!value?.trim()) return null;
+
+  try {
+    const url = new URL(value.trim());
+
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return null;
+    }
+
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function externalUrl(value?: string) {
+  return parseHttpUrl(value)?.toString() ?? "";
+}
+
+function getVideoEmbed(value?: string) {
+  const url = parseHttpUrl(value);
+
+  if (!url || url.protocol !== "https:") return null;
+
+  const host = url.hostname.toLowerCase().replace(/^www\./, "");
+  const parts = url.pathname.split("/").filter(Boolean);
+
+  if (host === "youtu.be") {
+    const videoId = parts[0] ?? "";
+
+    if (/^[A-Za-z0-9_-]{6,}$/.test(videoId)) {
+      return {
+        provider: "YouTube",
+        embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
+        sourceUrl: url.toString(),
+      };
+    }
+  }
+
+  if (host === "youtube.com" || host === "m.youtube.com") {
+    const videoId =
+      url.pathname === "/watch"
+        ? url.searchParams.get("v") ?? ""
+        : (parts[0] === "embed" || parts[0] === "shorts")
+          ? parts[1] ?? ""
+          : "";
+
+    if (/^[A-Za-z0-9_-]{6,}$/.test(videoId)) {
+      return {
+        provider: "YouTube",
+        embedUrl: `https://www.youtube-nocookie.com/embed/${videoId}`,
+        sourceUrl: url.toString(),
+      };
+    }
+  }
+
+  if (
+    (host === "loom.com" || host === "app.loom.com") &&
+    (parts[0] === "share" || parts[0] === "embed")
+  ) {
+    const videoId = parts[1] ?? "";
+
+    if (/^[A-Za-z0-9_-]{6,}$/.test(videoId)) {
+      return {
+        provider: "Loom",
+        embedUrl: `https://www.loom.com/embed/${videoId}`,
+        sourceUrl: url.toString(),
+      };
+    }
+  }
+
+  return null;
+}
+
+function getFigmaEmbedUrl(value?: string) {
+  const url = parseHttpUrl(value);
+
+  if (!url || url.protocol !== "https:") return "";
+
+  const host = url.hostname.toLowerCase();
+
+  if (host !== "figma.com" && !host.endsWith(".figma.com")) {
+    return "";
+  }
+
+  return `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(
+    url.toString(),
+  )}`;
+}
+
 export default function ProjectDetail() {
   const { slug } = useParams();
   const { projects } = useSite();
@@ -81,6 +172,25 @@ export default function ProjectDetail() {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+
+  const videoEmbed = getVideoEmbed(project.videoUrl);
+  const figmaEmbedUrl = getFigmaEmbedUrl(project.figmaUrl);
+
+  const githubUrl = externalUrl(project.githubUrl);
+  const notionUrl = externalUrl(project.notionUrl);
+  const demoUrl = externalUrl(project.demoUrl);
+  const videoUrl = externalUrl(project.videoUrl);
+  const figmaUrl = externalUrl(project.figmaUrl);
+  const pdfUrl = externalUrl(project.pdfUrl);
+
+  const hasRelatedResources = Boolean(
+    githubUrl ||
+      notionUrl ||
+      demoUrl ||
+      pdfUrl ||
+      (videoUrl && !videoEmbed) ||
+      (figmaUrl && !figmaEmbedUrl),
+  );
 
   return (
     <main className="min-h-screen py-10 md:py-16" style={{ background: "#F7F8FC" }}>
@@ -195,16 +305,84 @@ export default function ProjectDetail() {
           </section>
         )}
 
-        {(project.githubUrl || project.notionUrl || project.demoUrl) && (
+        {videoEmbed && (
+          <section className="rounded-3xl p-7 md:p-10 mb-6" style={surface}>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h2 className="text-lg font-bold" style={{ color: "#1F2A44" }}>
+                프로젝트 시연 영상
+              </h2>
+              <a
+                href={videoEmbed.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-semibold"
+                style={{ color: "#4A3FA3", textDecoration: "none" }}
+              >
+                원본 열기 <ArrowUpRight size={13} />
+              </a>
+            </div>
+
+            <div
+              className="overflow-hidden rounded-2xl"
+              style={{ background: "#EEF2FF", aspectRatio: "16 / 9" }}
+            >
+              <iframe
+                src={videoEmbed.embedUrl}
+                title={`${project.name} ${videoEmbed.provider} 시연 영상`}
+                className="w-full h-full border-0"
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            </div>
+          </section>
+        )}
+
+        {figmaEmbedUrl && (
+          <section className="rounded-3xl p-7 md:p-10 mb-6" style={surface}>
+            <div className="flex items-center justify-between gap-4 mb-4">
+              <h2 className="text-lg font-bold" style={{ color: "#1F2A44" }}>
+                Figma 프로토타입
+              </h2>
+              {figmaUrl && (
+                <a
+                  href={figmaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold"
+                  style={{ color: "#4A3FA3", textDecoration: "none" }}
+                >
+                  전체 화면 보기 <ArrowUpRight size={13} />
+                </a>
+              )}
+            </div>
+
+            <div
+              className="overflow-hidden rounded-2xl"
+              style={{ background: "#F7F8FC", border: "1px solid rgba(31,42,68,0.08)" }}
+            >
+              <iframe
+                src={figmaEmbedUrl}
+                title={`${project.name} Figma 프로토타입`}
+                className="w-full h-[460px] md:h-[620px] border-0"
+                loading="lazy"
+                allowFullScreen
+              />
+            </div>
+          </section>
+        )}
+
+        {hasRelatedResources && (
           <section className="rounded-3xl p-7 md:p-10" style={surface}>
             <h2 className="text-lg font-bold mb-4" style={{ color: "#1F2A44" }}>
               관련 자료
             </h2>
 
             <div className="flex flex-wrap gap-2">
-              {project.githubUrl && (
+              {githubUrl && (
                 <a
-                  href={project.githubUrl}
+                  href={githubUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
@@ -221,9 +399,9 @@ export default function ProjectDetail() {
                 </a>
               )}
 
-              {project.notionUrl && (
+              {notionUrl && (
                 <a
-                  href={project.notionUrl}
+                  href={notionUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
@@ -240,9 +418,9 @@ export default function ProjectDetail() {
                 </a>
               )}
 
-              {project.demoUrl && (
+              {demoUrl && (
                 <a
-                  href={project.demoUrl}
+                  href={demoUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
@@ -254,6 +432,60 @@ export default function ProjectDetail() {
                 >
                   <Play size={16} />
                   서비스 데모 보기
+                  <ArrowUpRight size={14} />
+                </a>
+              )}
+
+              {pdfUrl && (
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  style={{
+                    background: "#FEF3C7",
+                    color: "#92400E",
+                    textDecoration: "none",
+                  }}
+                >
+                  <FileText size={16} />
+                  PDF 발표자료 보기
+                  <ArrowUpRight size={14} />
+                </a>
+              )}
+
+              {videoUrl && !videoEmbed && (
+                <a
+                  href={videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  style={{
+                    background: "#FEF2F2",
+                    color: "#B91C1C",
+                    textDecoration: "none",
+                  }}
+                >
+                  <Play size={16} />
+                  영상 보기
+                  <ArrowUpRight size={14} />
+                </a>
+              )}
+
+              {figmaUrl && !figmaEmbedUrl && (
+                <a
+                  href={figmaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold"
+                  style={{
+                    background: "#ECE9FF",
+                    color: "#4A3FA3",
+                    textDecoration: "none",
+                  }}
+                >
+                  <Layers3 size={16} />
+                  Figma 자료 보기
                   <ArrowUpRight size={14} />
                 </a>
               )}
