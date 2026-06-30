@@ -638,7 +638,7 @@ function Projects() {
                   </div>
 
                   {/* 관련 자료 — 링크가 하나라도 있을 때만 노출 */}
-                  {(p.githubUrl || p.notionUrl || p.demoUrl) && (
+                  {(p.githubUrl || p.notionUrl || p.demoUrl || p.videoUrl) && (
                     <div
                       className="pt-4 mt-1 flex flex-wrap gap-2"
                       style={{ borderTop: "1px solid rgba(31,42,68,0.07)" }}
@@ -727,6 +727,32 @@ function Projects() {
                           }}
                         >
                           <MonitorPlay size={13} /> 서비스 데모 보기
+                          <ArrowUpRight size={11} style={{ opacity: 0.45 }} />
+                        </a>
+                      )}
+                      {p.videoUrl && (
+                        <a
+                          href={p.videoUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-150"
+                          style={{
+                            background: "#FFF1F2",
+                            color: "#BE123C",
+                            border: "1.5px solid rgba(190,18,60,0.18)",
+                            textDecoration: "none",
+                            boxShadow: "2px 2px 8px rgba(190,18,60,0.05), -1px -1px 5px rgba(255,255,255,0.9)",
+                          }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "rgba(190,18,60,0.4)";
+                            (e.currentTarget as HTMLElement).style.background = "#FFE4E6";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLElement).style.borderColor = "rgba(190,18,60,0.18)";
+                            (e.currentTarget as HTMLElement).style.background = "#FFF1F2";
+                          }}
+                        >
+                          <MonitorPlay size={13} /> 시연 영상 보기
                           <ArrowUpRight size={11} style={{ opacity: 0.45 }} />
                         </a>
                       )}
