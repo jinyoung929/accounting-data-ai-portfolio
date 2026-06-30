@@ -588,6 +588,25 @@ function Problems() {
 /* ─────────────────────────────────────────────────
    Projects
 ───────────────────────────────────────────────── */
+function getProjectStackTags(stack: string) {
+  const seen = new Set<string>();
+
+  return stack
+    .replace(/\\n/g, "\n")
+    .split(/\n|,/)
+    .map((item) => {
+      const pipeIndex = item.lastIndexOf("|");
+      return (pipeIndex >= 0 ? item.slice(pipeIndex + 1) : item).trim();
+    })
+    .filter(Boolean)
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
 function Projects() {
   const { projects } = useSite();
   const published = projects.filter((p) => p.status === "published");
@@ -630,7 +649,7 @@ function Projects() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {published.map((p) => {
-              const stacks = p.stack.split(",").map((s) => s.trim()).filter(Boolean);
+              const stacks = getProjectStackTags(p.stack);
               return (
                 <div key={p.id} style={neu} className="p-7 flex flex-col gap-4 h-full">
                   {p.thumbnailImg && (
@@ -677,15 +696,39 @@ function Projects() {
                     />
                   )}
 
-                  {/* 기술 스택 태그 — 카드마다 같은 높이 유지 */}
+                  {/* 기술 스택 태그 — 실제 기술만 간결하게 표시 */}
                   <div
                     className="flex flex-wrap content-start gap-1.5"
                     style={{ minHeight: "52px" }}
                   >
-                    {stacks.slice(0, 4).map((s) => <Tag key={s} label={s} />)}
-                    {stacks.length > 4 && (
-                      <span className="text-xs" style={{ color: "#9CA3AF", alignSelf: "center" }}>
-                        +{stacks.length - 4}
+                    {stacks.slice(0, 3).map((stack) => (
+                      <span
+                        key={stack}
+                        title={stack}
+                        className="inline-flex max-w-full items-center rounded-lg px-2.5 py-1 text-xs font-semibold"
+                        style={{
+                          maxWidth: "190px",
+                          background: "#ECE9FF",
+                          color: "#4A3FA3",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {stack}
+                      </span>
+                    ))}
+
+                    {stacks.length > 3 && (
+                      <span
+                        className="inline-flex items-center rounded-lg px-2 py-1 text-xs font-semibold"
+                        style={{
+                          background: "#F1F5F9",
+                          color: "#94A3B8",
+                        }}
+                        title={`추가 기술 ${stacks.slice(3).join(", ")}`}
+                      >
+                        +{stacks.length - 3}
                       </span>
                     )}
                   </div>
