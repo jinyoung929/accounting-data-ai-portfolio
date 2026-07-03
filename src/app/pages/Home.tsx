@@ -116,7 +116,7 @@ function Nav() {
             </a>
           ))}
           <a
-            href="mailto:hello@example.com"
+            href="mailto:pjy121732@gmail.com"
             className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-sm font-semibold transition-all duration-150"
             style={{
               background: "#1F2A44",
@@ -154,8 +154,10 @@ function Nav() {
         <div
           className="sm:hidden px-6 py-4 flex flex-col gap-4"
           style={{
-            background: "rgba(247,248,252,0.97)",
+            background: "#F7F8FC",
+            backdropFilter: "blur(18px)",
             borderTop: "1px solid rgba(31,42,68,0.08)",
+            boxShadow: "0 12px 24px rgba(31,42,68,0.08)",
           }}
         >
           {links.map((l) => (
@@ -170,7 +172,7 @@ function Nav() {
             </a>
           ))}
           <a
-            href="mailto:hello@example.com"
+            href="mailto:pjy121732@gmail.com"
             className="inline-flex items-center gap-1.5 text-sm font-semibold"
             style={{ color: "#3F72FF", textDecoration: "none" }}
           >
@@ -911,8 +913,8 @@ function Footer() {
 
           <div className="flex items-center gap-3">
             {[
-              { icon: Github, label: "GitHub", href: "https://github.com" },
-              { icon: Mail, label: "이메일", href: "mailto:hello@example.com" },
+              { icon: Github, label: "GitHub", href: "https://github.com/jinyoung929" },
+              { icon: Mail, label: "이메일", href: "mailto:pjy121732@gmail.com" },
             ].map((l) => (
               <a
                 key={l.label}
