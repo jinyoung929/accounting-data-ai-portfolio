@@ -83,6 +83,7 @@ export interface HeroContent {
 interface SavedSite {
   hero: HeroContent;
   problems: ProblemCard[];
+  projects: Project[];
 }
 
 interface DbProjectRow {
@@ -149,12 +150,12 @@ const STORAGE_KEY = "accounting-data-ai-portfolio-v1";
 
 function loadSavedSite(): SavedSite {
   if (typeof window === "undefined") {
-    return { hero: defaultHero, problems: defaultProblems };
+    return { hero: defaultHero, problems: defaultProblems, projects: [] };
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { hero: defaultHero, problems: defaultProblems };
+    if (!raw) return { hero: defaultHero, problems: defaultProblems, projects: [] };
 
     const parsed = JSON.parse(raw);
 
@@ -168,9 +169,10 @@ function loadSavedSite(): SavedSite {
       problems: Array.isArray(parsed.problems)
         ? parsed.problems
         : defaultProblems,
+      projects: Array.isArray(parsed.projects) ? parsed.projects : [],
     };
   } catch {
-    return { hero: defaultHero, problems: defaultProblems };
+    return { hero: defaultHero, problems: defaultProblems, projects: [] };
   }
 }
 
@@ -267,6 +269,7 @@ interface SiteCtx {
   setProblems: (problems: ProblemCard[]) => void;
   projects: Project[];
   setProjects: (projects: Project[]) => void;
+  projectsLoaded: boolean;
   refreshProjects: () => Promise<void>;
   addProject: (project: Project) => Promise<void>;
   updateProject: (project: Project) => Promise<void>;
@@ -281,14 +284,15 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
   const [hero, setHeroState] = useState<HeroContent>(saved.hero);
   const [problems, setProblemsState] = useState<ProblemCard[]>(saved.problems);
-  const [projects, setProjectsState] = useState<Project[]>([]);
+  const [projects, setProjectsState] = useState<Project[]>(saved.projects);
+  const [projectsLoaded, setProjectsLoaded] = useState(saved.projects.length > 0);
 
   useEffect(() => {
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ hero, problems }),
+      JSON.stringify({ hero, problems, projects }),
     );
-  }, [hero, problems]);
+  }, [hero, problems, projects]);
 
   async function refreshProjects() {
     const { data, error } = await supabase
@@ -299,10 +303,12 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error("프로젝트 목록을 불러오지 못했습니다:", error.message);
+      setProjectsLoaded(true);
       return;
     }
 
     setProjectsState((data as DbProjectRow[]).map(fromDbProject));
+    setProjectsLoaded(true);
   }
 
   useEffect(() => {
@@ -409,6 +415,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         setProblems,
         projects,
         setProjects,
+        projectsLoaded,
         refreshProjects,
         addProject,
         updateProject,

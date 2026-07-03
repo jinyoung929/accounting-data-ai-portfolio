@@ -170,11 +170,35 @@ function getFigmaEmbedUrl(value?: string) {
 
 export default function ProjectDetail() {
   const { slug } = useParams();
-  const { projects } = useSite();
+  const { projects, projectsLoaded } = useSite();
 
   const project = projects.find(
     (item) => item.slug === slug && item.status === "published",
   );
+
+  if (!project && !projectsLoaded) {
+    return (
+      <main
+        className="min-h-screen flex items-center justify-center px-6"
+        style={{ background: "#F7F8FC" }}
+      >
+        <div className="max-w-md w-full rounded-3xl p-8 text-center" style={surface}>
+          <div
+            className="mx-auto mb-4 rounded-full animate-spin"
+            style={{
+              width: 28,
+              height: 28,
+              border: "3px solid rgba(74,63,163,0.15)",
+              borderTopColor: "#4A3FA3",
+            }}
+          />
+          <p className="text-sm" style={{ color: "#6B7280" }}>
+            프로젝트를 불러오는 중입니다…
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (!project) {
     return (
