@@ -47,7 +47,7 @@
 
 | 영역 | 기술 |
 | --- | --- |
-| 프론트엔드 | React, TypeScript, Vite, React Router, Tailwind CSS |
-| 백엔드·DB | Supabase Auth, Supabase Database, Row Level Security |
+| 프론트엔드 | React, TypeScript, Vite |
+| 백엔드·DB | Supabase Auth, Supabase Database |
 | 파일 저장 | Supabase Storage |
 | 배포·협업 | Vercel, GitHub |
