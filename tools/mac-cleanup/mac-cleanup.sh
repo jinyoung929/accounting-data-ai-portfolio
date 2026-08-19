@@ -12,7 +12,7 @@
 
 set -u
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 
 TAB=$'\t'
 NL=$'\n'
@@ -22,6 +22,7 @@ NL=$'\n'
 # ---------------------------------------------------------------------------
 
 APPLY=0                  # 1이면 실제 실행
+SURVEY=0                 # 1이면 읽기 전용 진단 모드
 ASSUME_YES=0             # 1이면 확인 프롬프트 생략
 MODE="quarantine"        # quarantine | trash | delete
 DAYS_DOWNLOADS=180       # 이 일수보다 오래된 다운로드를 정리 대상으로
@@ -109,6 +110,9 @@ mac-cleanup.sh - macOS 파일 정리 도우미
   ./mac-cleanup.sh --apply --only junk,downloads --mode trash
 
 옵션:
+  --survey                디스크 용량이 어디에 있는지만 진단 (읽기 전용).
+                          정리 카테고리가 일부러 피하는 ~/Library 까지 포함해서
+                          iOS 백업, Docker 이미지, 시뮬레이터, APFS 스냅숏 등을 봅니다.
   --apply                 실제로 정리를 수행 (기본: dry-run)
   --only CAT[,CAT...]     --apply 시 처리할 카테고리. 미지정 시 아무것도 안 함.
                           카테고리: junk, empty, downloads, installers,
@@ -144,6 +148,7 @@ EOF
 while [ $# -gt 0 ]; do
   case "$1" in
     --apply)            APPLY=1 ;;
+    --survey)           SURVEY=1 ;;
     --only)             CATEGORIES="${2:-}"; shift ;;
     --only=*)           CATEGORIES="${1#*=}" ;;
     --mode)             MODE="${2:-}"; shift ;;
@@ -256,6 +261,153 @@ human() {  # 바이트 -> 사람이 읽는 크기
   else                               printf '%d B' "$b"
   fi
 }
+
+# ---------------------------------------------------------------------------
+# --survey : 읽기 전용 진단 모드
+#
+# 정리 카테고리는 안전을 위해 ~/Library 등을 일부러 피한다. 그래서 정작 디스크를
+# 가장 많이 먹는 곳(iOS 백업, Docker 이미지, 시뮬레이터, 사진 보관함, APFS 스냅숏)이
+# 보고서에 안 잡힌다. survey 는 그런 곳까지 포함해 "어디에 용량이 있는지"만 보여준다.
+# 아무것도 옮기거나 지우지 않는다.
+# ---------------------------------------------------------------------------
+
+SURVEY_MIN_KB=$((100 * 1024))   # 100MB 미만은 생략
+
+survey_size_kb() {
+  du -skx "$1" 2>/dev/null | awk 'NR==1{print $1+0}'
+}
+
+survey_item() {  # $1=경로 $2=설명
+  local p="$1" desc="$2" kb
+  [ -e "$p" ] || return 0
+  [ -L "$p" ] && return 0
+  kb=$(survey_size_kb "$p")
+  [ -n "${kb:-}" ] || return 0
+  [ "$kb" -lt "$SURVEY_MIN_KB" ] && return 0
+  printf '  %10s  %s\n' "$(human $((kb * 1024)))" "$desc"
+  printf '  %10s  %s\n' "" "~${p#$HOME}"
+  SURVEY_FOUND=$((SURVEY_FOUND + 1))
+}
+
+run_survey() {
+  local data_vol="/System/Volumes/Data"
+  [ -d "$data_vol" ] || data_vol="/"
+
+  echo "════════════════════════════════════════════════════════════════"
+  echo " 저장 공간 진단 (읽기 전용 — 아무것도 변경하지 않습니다)"
+  echo "════════════════════════════════════════════════════════════════"
+  echo
+  echo "── 실제 데이터 볼륨"
+  df -h "$data_vol" 2>/dev/null | sed 's/^/  /'
+  echo
+  if [ "$data_vol" != "/" ]; then
+    echo "  참고: df 가 '/' 로 보여 주는 것은 읽기 전용 시스템 볼륨이라 실제 사용량과"
+    echo "        다릅니다. 위 $data_vol 기준으로 보세요."
+    echo
+  fi
+
+  # APFS 로컬 스냅숏 — Time Machine 이 로컬에 남기는 것으로, 수십 GB 를 잡아먹고도
+  # Finder 에는 '확보 가능(purgeable)' 으로만 보여서 원인을 찾기 어렵다.
+  if command -v tmutil >/dev/null 2>&1; then
+    echo "── Time Machine 로컬 스냅숏"
+    snaps=$(tmutil listlocalsnapshots / 2>/dev/null | grep -c 'com.apple.TimeMachine')
+    if [ "${snaps:-0}" -gt 0 ]; then
+      echo "  $snaps 개 있음. 스냅숏은 Finder 에서 '확보 가능한 공간'으로만 보이고"
+      echo "  실제로는 디스크를 차지합니다. 수십 GB 인 경우도 흔합니다."
+      tmutil listlocalsnapshots / 2>/dev/null | sed 's/^/    /'
+      echo
+      echo "  삭제(외장 Time Machine 백업본은 그대로 남습니다):"
+      echo "    tmutil deletelocalsnapshots <위 날짜>"
+      echo "    또는 전부:  sudo tmutil thinlocalsnapshots / 999999999999 4"
+    else
+      echo "  없음"
+    fi
+    echo
+  fi
+
+  echo "── 홈 최상위 폴더 (100MB 이상)"
+  echo "  계산 중... 폴더가 크면 몇 분 걸립니다."
+  echo
+  {
+    for d in "$HOME"/*/ "$HOME"/.[!.]*/; do
+      [ -d "$d" ] || continue
+      [ -L "${d%/}" ] && continue
+      kb=$(survey_size_kb "${d%/}")
+      [ "${kb:-0}" -ge "$SURVEY_MIN_KB" ] && printf '%s\t%s\n' "$kb" "${d%/}"
+    done
+  } | sort -t"$TAB" -k1,1nr | while IFS="$TAB" read -r kb p; do
+    printf '  %10s  ~%s\n' "$(human $((kb * 1024)))" "${p#$HOME}"
+  done
+  echo
+
+  echo "── 알려진 대용량 위치"
+  SURVEY_FOUND=0
+  survey_item "$HOME/Library/Application Support/MobileSync/Backup" \
+              "iPhone/iPad 백업 — 안 쓰는 기기 백업이면 통째로 지워도 됩니다"
+  survey_item "$HOME/Library/Containers/com.docker.docker/Data" \
+              "Docker 디스크 이미지 — Docker Desktop 에서 'Clean / Purge data'"
+  survey_item "$HOME/.docker" "Docker 설정/캐시"
+  survey_item "$HOME/Library/Developer/CoreSimulator/Devices" \
+              "iOS 시뮬레이터 기기 — xcrun simctl delete unavailable"
+  survey_item "$HOME/Library/Developer/Xcode/iOS DeviceSupport" \
+              "예전 iOS 버전 심볼 — 오래된 버전은 지워도 됩니다"
+  survey_item "$HOME/Library/Developer/Xcode/DerivedData" "Xcode 빌드 캐시 (caches 카테고리 대상)"
+  survey_item "$HOME/Library/Developer/Xcode/Archives"    "Xcode 아카이브"
+  survey_item "$HOME/Library/Android" "Android SDK / 에뮬레이터 이미지"
+  survey_item "$HOME/Pictures/Photos Library.photoslibrary" \
+              "사진 보관함 — 앱에서 관리하세요. 직접 지우면 안 됩니다"
+  survey_item "$HOME/Library/Mobile Documents" \
+              "iCloud Drive 로컬 사본 — '저장 공간 최적화'를 켜면 줄어듭니다"
+  survey_item "$HOME/Library/Caches"          "앱 캐시 전체"
+  survey_item "$HOME/Library/Group Containers" "앱 그룹 데이터 (Slack, Office 등)"
+  survey_item "$HOME/Library/Mail"            "Mail 로컬 사본/첨부"
+  survey_item "$HOME/Library/Messages"        "메시지 기록/첨부"
+  survey_item "$HOME/Library/Logs"            "로그"
+  survey_item "$HOME/.ollama/models"          "Ollama LLM 모델 — 개당 수 GB"
+  survey_item "$HOME/Library/Application Support/Steam" "Steam 게임"
+  survey_item "$HOME/Library/Application Support/Slack"  "Slack 캐시"
+  survey_item "$HOME/Library/Application Support/Code"   "VS Code 데이터"
+  survey_item "$HOME/Library/Application Support/Cursor" "Cursor 데이터"
+  survey_item "$HOME/Library/Application Support/JetBrains" "JetBrains IDE 데이터"
+  survey_item "$HOME/Library/Application Support/Google/Chrome" "Chrome 프로필"
+  survey_item "$HOME/miniconda3" "Conda 환경"
+  survey_item "$HOME/anaconda3"  "Conda 환경"
+  survey_item "$HOME/.rustup"    "Rust 툴체인"
+  survey_item "$HOME/go/pkg"     "Go 모듈 캐시 — go clean -modcache"
+  survey_item "$HOME/.gradle"    "Gradle 캐시"
+  survey_item "$HOME/.m2"        "Maven 캐시"
+  survey_item "$HOME/Movies/TV/Media" "Apple TV 다운로드"
+  survey_item "$HOME/Music/Music/Media" "음악 라이브러리"
+  [ "$SURVEY_FOUND" -eq 0 ] && echo "  100MB 넘는 항목 없음"
+  echo
+
+  echo "── 홈 전체에서 가장 큰 폴더 상위 30 (깊이 4까지)"
+  echo "  계산 중..."
+  du -kx -d 4 "$HOME" 2>/dev/null | sort -rn | head -n 31 | \
+    while read -r kb p; do
+      [ "$p" = "$HOME" ] && continue
+      printf '  %10s  ~%s\n' "$(human $((kb * 1024)))" "${p#$HOME}"
+    done
+  echo
+
+  cat <<EOF
+════════════════════════════════════════════════════════════════
+ 여기서는 아무것도 지우지 않았습니다.
+
+ 위 목록에서 지워도 되는 것을 정한 뒤,
+   - 개발 캐시류라면:  $0 --apply --only caches,projects
+   - 그 외에는 Finder 에서 직접 확인하고 옮기세요.
+
+ 시스템이 관리하는 영역(사진 보관함, iCloud, 메일)은 직접 지우지 말고
+ 해당 앱이나 시스템 설정 → 일반 → 저장 공간에서 정리하세요.
+════════════════════════════════════════════════════════════════
+EOF
+}
+
+if [ "$SURVEY" -eq 1 ]; then
+  run_survey
+  exit 0
+fi
 
 # ---------------------------------------------------------------------------
 # 작업 디렉터리

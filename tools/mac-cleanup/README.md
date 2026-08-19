@@ -10,6 +10,18 @@ Mac 홈 디렉터리에서 안 쓰는 파일을 찾아 보고서로 보여주고
 2. **--apply 만으로는 아무 일도 일어나지 않습니다.** `--only` 로 카테고리를 명시해야 합니다.
 3. **기본 정리 방식은 삭제가 아니라 격리.** `~/.mac-cleanup/quarantine/<시각>/` 으로 옮기고 `restore.sh` 복구 스크립트를 함께 만듭니다. 며칠 써 보고 문제 없을 때 그 폴더를 지우면 됩니다.
 
+## 용량이 어디에 있는지 먼저 보기
+
+정리 카테고리는 안전을 위해 `~/Library` 를 일부러 피합니다. 그런데 Mac 용량을 실제로 잡아먹는 것은 대개 거기 있습니다 — iOS 백업, Docker 디스크 이미지, iOS 시뮬레이터, 사진 보관함, Time Machine 로컬 스냅숏.
+
+```bash
+bash tools/mac-cleanup/mac-cleanup.sh --survey
+```
+
+읽기 전용이라 아무것도 지우지 않고, 어디에 몇 GB가 있는지와 각 항목을 어떻게 정리하는지만 알려줍니다. 홈 폴더 전체를 훑으므로 몇 분 걸릴 수 있습니다.
+
+특히 **Time Machine 로컬 스냅숏**은 Finder 에 "확보 가능한 공간"으로만 표시돼서 원인을 찾기 어려운데, 수십 GB 를 차지하는 경우가 흔합니다.
+
 ## 빠른 시작
 
 ```bash
@@ -81,6 +93,7 @@ rm -rf ~/.mac-cleanup/quarantine/20260819-002948
 ## 옵션
 
 ```
+--survey                용량이 어디에 있는지만 진단 (읽기 전용, ~/Library 포함)
 --apply                 실제로 정리 수행 (기본: dry-run)
 --only CAT[,CAT...]     처리할 카테고리. --apply 시 필수
 --mode MODE             quarantine(기본) | trash | delete
