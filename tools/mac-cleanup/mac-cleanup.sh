@@ -12,7 +12,7 @@
 
 set -u
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 TAB=$'\t'
 NL=$'\n'
@@ -86,6 +86,12 @@ CACHE_PATHS=(
 
 # 프로젝트 안에서 재생성 가능한 디렉터리 이름
 REGENERABLE_DIRS=( 'node_modules' '.venv' 'venv' '__pycache__' '.pytest_cache' '.mypy_cache' '.ruff_cache' '.turbo' )
+
+# 의존성 트리 안의 파일은 "파일 하나씩" 다루면 안 된다.
+# - 서로 다른 프로젝트가 같은 라이브러리 파일을 각자 갖는 건 정상이므로 중복이 아니고,
+# - 오래됐다고 개별 파일만 빼내면 그 프로젝트가 어정쩡하게 깨진다.
+# 이런 폴더는 projects/caches 카테고리에서 통째로 처리한다.
+DEPS_EXCLUDE='/node_modules/|/\.venv/|/venv/|/site-packages/|/\.tox/|/vendor/|/\.gradle/|/\.cargo/|/Pods/|/\.terraform/|/\.next/|/dist-packages/'
 
 # ---------------------------------------------------------------------------
 # 인자 파싱
@@ -441,10 +447,12 @@ for root in "${SCAN_ROOTS[@]}"; do
 done
 
 # --- 4) 오래된 다운로드 ----------------------------------------------------
+# 프로젝트를 통째로 받아 둔 경우가 많으므로, 의존성 트리 안의 개별 파일은 제외한다.
 if [ -d "$HOME/Downloads" ]; then
   while IFS= read -r -d '' f; do
     [ -L "$f" ] && continue
     case "$f" in *.icloud) continue ;; esac
+    printf '%s' "$f" | grep -Eq "$DEPS_EXCLUDE" && continue
     add_entry "$L_DOWNLOADS" "$f" "$(fsize "$f")"
   done < <(find "$HOME/Downloads" "${PRUNE_EXPR[@]}" -o -type f -mtime "+$DAYS_DOWNLOADS" -print0 2>/dev/null)
 fi
@@ -514,17 +522,12 @@ fi
 # --- 10) 중복 파일 ---------------------------------------------------------
 # 같은 크기끼리 묶은 뒤, 2개 이상인 그룹만 해시한다.
 #
-# 의존성 트리(가상환경, node_modules, 벤더 폴더) 안에서는 서로 다른 프로젝트가
-# 똑같은 라이브러리 파일을 각자 갖고 있는 게 정상이다. 여기서 "중복"을 지우면
-# 한쪽 환경이 그대로 깨지므로 중복 검사 대상에서 통째로 뺀다.
-# 이런 폴더는 projects/caches 카테고리에서 통째로 정리하는 게 맞다.
-DUPE_EXCLUDE='/node_modules/|/\.venv/|/venv/|/site-packages/|/\.tox/|/vendor/|/\.gradle/|/\.cargo/|/Pods/|/\.terraform/'
-
+# 의존성 트리는 통째로 다루는 게 맞으므로 중복 검사에서 뺀다 (DEPS_EXCLUDE 참고).
 DUPE_CAND="$TMP/dupe-candidates.tsv"
 : > "$DUPE_CAND"
 if [ -s "$ALL_FILES" ]; then
   awk -F'\t' -v min="$MIN_DUPE_BYTES" '$1 >= min' "$ALL_FILES" \
-    | grep -Ev "$DUPE_EXCLUDE" \
+    | grep -Ev "$DEPS_EXCLUDE" \
     | sort -t"$TAB" -k1,1n > "$TMP/by-size.tsv"
 
   awk -F'\t' '

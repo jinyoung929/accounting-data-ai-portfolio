@@ -53,7 +53,12 @@ rm -rf ~/.mac-cleanup/quarantine/20260819-002948
 
 `caches` 는 도구가 알아서 다시 받으므로 가장 안전하면서 확보량이 큽니다.
 
-`dupes` 는 의존성 트리(`node_modules`, `.venv`, `site-packages`, `vendor`, `Pods` 등) 안의 파일을 **검사 대상에서 제외**합니다. 서로 다른 프로젝트가 같은 라이브러리 파일을 각자 갖고 있는 것은 정상이고, 그중 하나를 지우면 그 환경이 그대로 깨지기 때문입니다. 그런 폴더는 `projects` / `caches` 로 통째로 정리하는 것이 맞습니다.
+`dupes` 와 `downloads` 는 의존성 트리(`node_modules`, `.venv`, `site-packages`, `vendor`, `Pods`, `.gradle` 등) 안의 파일을 **건너뜁니다**. 이런 폴더는 파일 하나씩 다루면 안 되기 때문입니다.
+
+- 서로 다른 프로젝트가 같은 라이브러리 파일을 각자 갖고 있는 것은 정상이라 중복이 아닙니다. 하나를 지우면 그쪽 환경이 그대로 깨집니다.
+- 오래됐다고 개별 파일만 빼내면 프로젝트가 어정쩡하게 망가집니다.
+
+이런 폴더는 `projects` / `caches` 에서 **통째로** 처리합니다.
 
 `projects` 는 지운 뒤 프로젝트를 다시 쓸 때 재설치가 필요합니다 — `node_modules` 는 `npm install`, `.venv` 는 `pip install -r requirements.txt`. 특히 가상환경은 `requirements.txt` 가 없으면 복원이 번거로우므로, 격리 폴더를 바로 지우지 말고 해당 프로젝트를 한 번 돌려 본 뒤에 비우세요.
 
