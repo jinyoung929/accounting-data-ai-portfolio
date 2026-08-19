@@ -47,11 +47,15 @@ rm -rf ~/.mac-cleanup/quarantine/20260819-002948
 | `downloads` | `~/Downloads` 에서 N일(기본 180) 이상 손대지 않은 파일 | 가능 |
 | `installers` | N일(기본 30) 이상 지난 `.dmg` / `.pkg` / `.iso` | 가능 |
 | `caches` | Xcode DerivedData·Archives, Homebrew/pip/npm/Yarn/Gradle 캐시 등 | 가능하지만 불필요 (재생성됨) |
-| `projects` | 프로젝트 안의 `node_modules`, `__pycache__`, `.pytest_cache` 등 | 가능하지만 불필요 (재설치/재생성됨) |
+| `projects` | 프로젝트 안의 `node_modules`, `.venv`, `venv`, `__pycache__` 등 | 가능 (재설치로도 복구됨) |
 | `dupes` | 내용이 완전히 같은(SHA-256 일치) 파일. **가장 오래된 1개는 남깁니다** | 가능 |
 | `trash` | 휴지통에 N일(기본 30) 이상 있던 항목 | **불가 — 항상 영구 삭제** |
 
-`caches` 와 `projects` 는 지워도 도구가 다시 만들어 주는 것들이라 보통 가장 안전하면서 확보량이 큽니다. `node_modules` 를 지운 프로젝트는 다음에 `npm install`(또는 `pnpm install`) 한 번 더 필요합니다.
+`caches` 는 도구가 알아서 다시 받으므로 가장 안전하면서 확보량이 큽니다.
+
+`dupes` 는 의존성 트리(`node_modules`, `.venv`, `site-packages`, `vendor`, `Pods` 등) 안의 파일을 **검사 대상에서 제외**합니다. 서로 다른 프로젝트가 같은 라이브러리 파일을 각자 갖고 있는 것은 정상이고, 그중 하나를 지우면 그 환경이 그대로 깨지기 때문입니다. 그런 폴더는 `projects` / `caches` 로 통째로 정리하는 것이 맞습니다.
+
+`projects` 는 지운 뒤 프로젝트를 다시 쓸 때 재설치가 필요합니다 — `node_modules` 는 `npm install`, `.venv` 는 `pip install -r requirements.txt`. 특히 가상환경은 `requirements.txt` 가 없으면 복원이 번거로우므로, 격리 폴더를 바로 지우지 말고 해당 프로젝트를 한 번 돌려 본 뒤에 비우세요.
 
 `trash` 는 이미 휴지통에 버린 항목을 실제로 비우는 것이므로, `--mode` 와 무관하게 항상 영구 삭제됩니다.
 

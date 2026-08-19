@@ -85,7 +85,7 @@ CACHE_PATHS=(
 )
 
 # 프로젝트 안에서 재생성 가능한 디렉터리 이름
-REGENERABLE_DIRS=( 'node_modules' '__pycache__' '.pytest_cache' '.mypy_cache' '.ruff_cache' '.turbo' )
+REGENERABLE_DIRS=( 'node_modules' '.venv' 'venv' '__pycache__' '.pytest_cache' '.mypy_cache' '.ruff_cache' '.turbo' )
 
 # ---------------------------------------------------------------------------
 # 인자 파싱
@@ -129,7 +129,7 @@ mac-cleanup.sh - macOS 파일 정리 도우미
   downloads   ~/Downloads 에서 N일 이상 손대지 않은 파일
   installers  오래된 .dmg / .pkg / .iso 설치 파일
   caches      Xcode DerivedData, Homebrew/pip/npm 캐시 등 (재생성 가능)
-  projects    프로젝트 안의 node_modules, __pycache__ 등 (재생성 가능)
+  projects    프로젝트 안의 node_modules, .venv, __pycache__ 등 (재설치 필요)
   dupes       내용이 완전히 같은 중복 파일 (가장 오래된 하나만 남김)
   trash       휴지통에 오래 있던 항목 (이 카테고리는 항상 영구 삭제)
 EOF
@@ -484,9 +484,10 @@ for root in "${SCAN_ROOTS[@]}"; do
   for name in "${REGENERABLE_DIRS[@]}"; do
     while IFS= read -r -d '' d; do
       [ -L "$d" ] && continue
-      # 다른 재생성 디렉터리 안에 중첩된 건 부모만 다루면 되므로 제외
+      # 다른 재생성 디렉터리 안에 중첩된 건 부모를 통째로 다루면 되므로 제외.
+      # (예: .venv 안의 __pycache__ 수백 개를 따로 나열할 필요가 없다)
       case "$d" in
-        */node_modules/*) continue ;;
+        */node_modules/*|*/.venv/*|*/venv/*|*/site-packages/*) continue ;;
       esac
       if [ -n "$(find "$d" -maxdepth 0 -mtime "+$DAYS_CACHE" -print 2>/dev/null)" ]; then
         add_entry "$L_PROJECTS" "$d" "$(dirsize "$d")"
@@ -512,11 +513,18 @@ fi
 
 # --- 10) 중복 파일 ---------------------------------------------------------
 # 같은 크기끼리 묶은 뒤, 2개 이상인 그룹만 해시한다.
+#
+# 의존성 트리(가상환경, node_modules, 벤더 폴더) 안에서는 서로 다른 프로젝트가
+# 똑같은 라이브러리 파일을 각자 갖고 있는 게 정상이다. 여기서 "중복"을 지우면
+# 한쪽 환경이 그대로 깨지므로 중복 검사 대상에서 통째로 뺀다.
+# 이런 폴더는 projects/caches 카테고리에서 통째로 정리하는 게 맞다.
+DUPE_EXCLUDE='/node_modules/|/\.venv/|/venv/|/site-packages/|/\.tox/|/vendor/|/\.gradle/|/\.cargo/|/Pods/|/\.terraform/'
+
 DUPE_CAND="$TMP/dupe-candidates.tsv"
 : > "$DUPE_CAND"
 if [ -s "$ALL_FILES" ]; then
   awk -F'\t' -v min="$MIN_DUPE_BYTES" '$1 >= min' "$ALL_FILES" \
-    | grep -v '/node_modules/' \
+    | grep -Ev "$DUPE_EXCLUDE" \
     | sort -t"$TAB" -k1,1n > "$TMP/by-size.tsv"
 
   awk -F'\t' '
